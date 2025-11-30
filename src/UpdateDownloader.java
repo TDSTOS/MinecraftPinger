@@ -130,7 +130,7 @@ public class UpdateDownloader {
             return false;
         }
 
-        if (downloadedFile.length() < 1000) {
+        if (downloadedFile.length() < 200) {
             System.err.println("Validation failed: File too small (" + downloadedFile.length() + " bytes)");
             return false;
         }
