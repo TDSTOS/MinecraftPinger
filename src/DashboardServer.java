@@ -487,7 +487,7 @@ public class DashboardServer {
             "            }\n" +
             "        }\n" +
             "        \n" +
-            "        async function toggleRealtime() {"\n" +
+            "        async function toggleRealtime() {\n" +
             "            const btn = document.getElementById('realtimeBtn');\n" +
             "            const playerName = document.getElementById('realtimePlayerName').value.trim();\n" +
             "            const serverName = document.getElementById('realtimeServerSelect').value;\n" +
