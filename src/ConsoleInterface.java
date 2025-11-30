@@ -9,16 +9,18 @@ public class ConsoleInterface {
     private DiscordWebhook discord;
     private ChecklistProcessor checklistProcessor;
     private UpdateManager updateManager;
+    private RealTimeCheckController realTimeController;
     private Scanner scanner;
     private boolean running;
 
-    public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord, UpdateManager updateManager) {
+    public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord, UpdateManager updateManager, RealTimeCheckController realTimeController) {
         this.playerChecker = playerChecker;
         this.multiServerChecker = multiServerChecker;
         this.config = config;
         this.historyService = historyService;
         this.discord = discord;
         this.updateManager = updateManager;
+        this.realTimeController = realTimeController;
         this.checklistProcessor = new ChecklistProcessor(multiServerChecker, config);
         this.scanner = new Scanner(System.in);
         this.running = true;
@@ -52,6 +54,8 @@ public class ConsoleInterface {
         System.out.println("  status [server]                - Show server status");
         System.out.println("  servers                        - List all configured servers");
         System.out.println("  history <playername> [days]    - Show player history");
+        System.out.println("  realtime <playername> [server] - Start real-time monitoring");
+        System.out.println("  realtime stop                  - Stop real-time monitoring");
         System.out.println("  checkupdates                   - Check for application updates");
         System.out.println("  help                           - Show this help message");
         System.out.println("  exit                           - Exit the program");
@@ -124,6 +128,25 @@ public class ConsoleInterface {
                         }
                     }
                     showHistory(playerName, days);
+                }
+                break;
+
+            case "realtime":
+                if (parts.length < 2) {
+                    System.out.println("Error: Please provide a player name or 'stop'.");
+                    System.out.println("Usage: realtime <playername> [server]");
+                    System.out.println("       realtime stop");
+                } else {
+                    String[] realtimeArgs = parts[1].split("\\s+", 2);
+                    String firstArg = realtimeArgs[0];
+
+                    if (firstArg.equalsIgnoreCase("stop")) {
+                        realTimeController.stopCliRealTimeCheck();
+                    } else {
+                        String playerName = firstArg;
+                        String serverName = realtimeArgs.length > 1 ? realtimeArgs[1] : null;
+                        realTimeController.startCliRealTimeCheck(playerName, serverName);
+                    }
                 }
                 break;
 

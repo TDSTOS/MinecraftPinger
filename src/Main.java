@@ -51,6 +51,13 @@ public class Main {
 
             UpdateExecutor.ensureUpdateScriptsExist(".");
 
+            RealTimeCheckController realTimeController = new RealTimeCheckController(
+                multiServerChecker,
+                historyService,
+                discord,
+                config
+            );
+
             dashboardServer = new DashboardServer(
                 config.getDashboardPort(),
                 multiServerChecker,
@@ -73,15 +80,20 @@ public class Main {
                 config,
                 historyService,
                 discord,
-                updateManager
+                updateManager,
+                realTimeController
             );
 
             final DashboardServer finalDashboardServer = dashboardServer;
             final MultiServerChecker finalMultiServerChecker = multiServerChecker;
             final UpdateManager finalUpdateManager = updateManager;
+            final RealTimeCheckController finalRealTimeController = realTimeController;
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 System.out.println("\nShutting down...");
+                if (finalRealTimeController != null) {
+                    finalRealTimeController.shutdown();
+                }
                 if (finalDashboardServer != null) {
                     finalDashboardServer.stop();
                 }

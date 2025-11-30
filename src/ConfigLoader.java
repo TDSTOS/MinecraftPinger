@@ -13,6 +13,8 @@ public class ConfigLoader {
     private int autoUpdateCheckIntervalMinutes;
     private String autoUpdateRepositoryOwner;
     private String autoUpdateRepositoryName;
+    private int realTimeCliIntervalSeconds;
+    private int realTimeDashboardIntervalSeconds;
 
     public ConfigLoader(String configFilePath) throws IOException {
         loadConfig(configFilePath);
@@ -47,6 +49,9 @@ public class ConfigLoader {
         autoUpdateCheckIntervalMinutes = Integer.parseInt(properties.getProperty("autoUpdate.checkIntervalMinutes", "60"));
         autoUpdateRepositoryOwner = properties.getProperty("autoUpdate.repositoryOwner", "TDSTOS");
         autoUpdateRepositoryName = properties.getProperty("autoUpdate.repositoryName", "MinecraftPinger");
+
+        realTimeCliIntervalSeconds = Integer.parseInt(properties.getProperty("realtime.cliIntervalSeconds", "1"));
+        realTimeDashboardIntervalSeconds = Integer.parseInt(properties.getProperty("realtime.dashboardIntervalSeconds", "60"));
     }
 
     private void loadMultiServerConfig(Properties properties) {
@@ -116,5 +121,13 @@ public class ConfigLoader {
 
     public String getAutoUpdateRepositoryName() {
         return autoUpdateRepositoryName;
+    }
+
+    public int getRealTimeCliIntervalSeconds() {
+        return realTimeCliIntervalSeconds;
+    }
+
+    public int getRealTimeDashboardIntervalSeconds() {
+        return realTimeDashboardIntervalSeconds;
     }
 }
