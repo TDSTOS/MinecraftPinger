@@ -41,6 +41,15 @@ public class Main {
                 System.out.println("Discord notifications: DISABLED (optional feature)");
             }
 
+            LiveTimeline timeline = new LiveTimeline(historyService);
+            System.out.println("Live timeline: ENABLED");
+
+            ServerPerformanceMonitor perfMonitor = new ServerPerformanceMonitor(historyService);
+            System.out.println("Performance monitoring: ENABLED");
+
+            PlayerAnalytics analytics = new PlayerAnalytics(historyService);
+            System.out.println("Player analytics: ENABLED");
+
             UpdateManager updateManager = new UpdateManager(config);
             if (config.isAutoUpdateEnabled()) {
                 System.out.println("Auto-update: ENABLED (checking every " + config.getAutoUpdateCheckIntervalMinutes() + " minutes)");
@@ -58,13 +67,27 @@ public class Main {
                 config
             );
 
+            MultiPlayerRealTimeController multiRealTime = new MultiPlayerRealTimeController(
+                multiServerChecker,
+                historyService,
+                discord,
+                config,
+                timeline,
+                perfMonitor
+            );
+            System.out.println("Multi-player real-time monitoring: ENABLED");
+
             dashboardServer = new DashboardServer(
                 config.getDashboardPort(),
                 multiServerChecker,
                 historyService,
                 config,
                 updateManager,
-                realTimeController
+                realTimeController,
+                multiRealTime,
+                analytics,
+                timeline,
+                perfMonitor
             );
 
             try {
@@ -82,18 +105,26 @@ public class Main {
                 historyService,
                 discord,
                 updateManager,
-                realTimeController
+                realTimeController,
+                multiRealTime,
+                analytics,
+                timeline,
+                perfMonitor
             );
 
             final DashboardServer finalDashboardServer = dashboardServer;
             final MultiServerChecker finalMultiServerChecker = multiServerChecker;
             final UpdateManager finalUpdateManager = updateManager;
             final RealTimeCheckController finalRealTimeController = realTimeController;
+            final MultiPlayerRealTimeController finalMultiRealTime = multiRealTime;
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 System.out.println("\nShutting down...");
                 if (finalRealTimeController != null) {
                     finalRealTimeController.shutdown();
+                }
+                if (finalMultiRealTime != null) {
+                    finalMultiRealTime.shutdown();
                 }
                 if (finalDashboardServer != null) {
                     finalDashboardServer.stop();

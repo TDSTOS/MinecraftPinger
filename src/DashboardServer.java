@@ -13,14 +13,22 @@ public class DashboardServer {
     private ConfigLoader config;
     private UpdateManager updateManager;
     private RealTimeCheckController realTimeController;
+    private MultiPlayerRealTimeController multiRealTime;
+    private PlayerAnalytics analytics;
+    private LiveTimeline timeline;
+    private ServerPerformanceMonitor perfMonitor;
 
-    public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config, UpdateManager updateManager, RealTimeCheckController realTimeController) {
+    public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config, UpdateManager updateManager, RealTimeCheckController realTimeController, MultiPlayerRealTimeController multiRealTime, PlayerAnalytics analytics, LiveTimeline timeline, ServerPerformanceMonitor perfMonitor) {
         this.port = port;
         this.serverChecker = serverChecker;
         this.historyService = historyService;
         this.config = config;
         this.updateManager = updateManager;
         this.realTimeController = realTimeController;
+        this.multiRealTime = multiRealTime;
+        this.analytics = analytics;
+        this.timeline = timeline;
+        this.perfMonitor = perfMonitor;
     }
 
     public void start() throws IOException {
@@ -35,6 +43,15 @@ public class DashboardServer {
         server.createContext("/api/realtime/stop", this::handleRealtimeStop);
         server.createContext("/api/realtime/status", this::handleRealtimeStatus);
         server.createContext("/realtime/toggle", this::handleRealtimeToggle);
+
+        server.createContext("/api/analytics", this::handleAnalytics);
+        server.createContext("/api/timeline", this::handleTimeline);
+        server.createContext("/api/performance", this::handlePerformance);
+        server.createContext("/api/realtime/multi/add", this::handleMultiRealtimeAdd);
+        server.createContext("/api/realtime/multi/remove", this::handleMultiRealtimeRemove);
+        server.createContext("/api/realtime/multi/list", this::handleMultiRealtimeList);
+        server.createContext("/api/realtime/background/start", this::handleBackgroundStart);
+        server.createContext("/api/realtime/background/stop", this::handleBackgroundStop);
 
         server.start();
         System.out.println("Dashboard server started on http://localhost:" + port);
@@ -736,5 +753,183 @@ public class DashboardServer {
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n");
+    }
+
+    private void handleAnalytics(HttpExchange exchange) throws IOException {
+        String query = exchange.getRequestURI().getQuery();
+        String playerName = getQueryParam(query, "player");
+
+        if (playerName == null) {
+            sendJsonResponse(exchange, 400, "{\"error\":\"Missing player parameter\"}");
+            return;
+        }
+
+        PlayerAnalytics.PlayerInsights insights = analytics.getInsights(playerName);
+        if (insights == null) {
+            sendJsonResponse(exchange, 404, "{\"error\":\"No data found\"}");
+            return;
+        }
+
+        String json = insightsToJson(insights);
+        sendJsonResponse(exchange, 200, json);
+    }
+
+    private void handleTimeline(HttpExchange exchange) throws IOException {
+        List<LiveTimeline.TimelineEvent> events = timeline.getRecentEvents(50);
+        String json = timelineToJson(events);
+        sendJsonResponse(exchange, 200, json);
+    }
+
+    private void handlePerformance(HttpExchange exchange) throws IOException {
+        String query = exchange.getRequestURI().getQuery();
+        String serverName = getQueryParam(query, "server");
+
+        if (serverName == null) {
+            Map<String, PerformanceMetrics> allMetrics = perfMonitor.getLatestForAllServers();
+            String json = allMetricsToJson(allMetrics);
+            sendJsonResponse(exchange, 200, json);
+        } else {
+            PerformanceMetrics metrics = perfMonitor.getLatest(serverName);
+            if (metrics == null) {
+                sendJsonResponse(exchange, 404, "{\"error\":\"No data found\"}");
+                return;
+            }
+            String json = metricsToJson(metrics);
+            sendJsonResponse(exchange, 200, json);
+        }
+    }
+
+    private void handleMultiRealtimeAdd(HttpExchange exchange) throws IOException {
+        String query = exchange.getRequestURI().getQuery();
+        String playerName = getQueryParam(query, "player");
+        String serverName = getQueryParam(query, "server");
+
+        boolean success = multiRealTime.addCliPlayer(playerName, serverName);
+        sendJsonResponse(exchange, 200, "{\"success\":" + success + "}");
+    }
+
+    private void handleMultiRealtimeRemove(HttpExchange exchange) throws IOException {
+        String query = exchange.getRequestURI().getQuery();
+        String playerName = getQueryParam(query, "player");
+
+        boolean success = multiRealTime.removeCliPlayer(playerName);
+        sendJsonResponse(exchange, 200, "{\"success\":" + success + "}");
+    }
+
+    private void handleMultiRealtimeList(HttpExchange exchange) throws IOException {
+        List<String> cliPlayers = multiRealTime.listCliPlayers();
+        List<String> bgPlayers = multiRealTime.listBackgroundPlayers();
+
+        String json = "{\"cli\":" + listToJson(cliPlayers) +
+                      ",\"background\":" + listToJson(bgPlayers) +
+                      ",\"cliActive\":" + multiRealTime.isCliActive() +
+                      ",\"backgroundActive\":" + multiRealTime.isBackgroundActive() + "}";
+        sendJsonResponse(exchange, 200, json);
+    }
+
+    private void handleBackgroundStart(HttpExchange exchange) throws IOException {
+        String query = exchange.getRequestURI().getQuery();
+        String playersParam = getQueryParam(query, "players");
+
+        if (playersParam == null) {
+            sendJsonResponse(exchange, 400, "{\"error\":\"Missing players parameter\"}");
+            return;
+        }
+
+        String[] playerNames = playersParam.split(",");
+        Set<String> players = new HashSet<>(Arrays.asList(playerNames));
+        boolean success = multiRealTime.startBackgroundMonitoring(players);
+        sendJsonResponse(exchange, 200, "{\"success\":" + success + "}");
+    }
+
+    private void handleBackgroundStop(HttpExchange exchange) throws IOException {
+        boolean success = multiRealTime.stopBackgroundMonitoring();
+        sendJsonResponse(exchange, 200, "{\"success\":" + success + "}");
+    }
+
+    private String insightsToJson(PlayerAnalytics.PlayerInsights insights) {
+        Map<Integer, Integer> hourlyActivity = insights.getHourlyActivity();
+        StringBuilder hourlyJson = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<Integer, Integer> entry : hourlyActivity.entrySet()) {
+            if (!first) hourlyJson.append(",");
+            hourlyJson.append("\"").append(entry.getKey()).append("\":").append(entry.getValue());
+            first = false;
+        }
+        hourlyJson.append("}");
+
+        return String.format(
+            "{\"playerName\":\"%s\",\"totalOnlineTime\":%d,\"dailyOnlineTime\":%d," +
+            "\"weeklyOnlineTime\":%d,\"sessionCount\":%d,\"averageSessionLength\":%d," +
+            "\"longestSession\":%d,\"hourlyActivity\":%s}",
+            escapeJson(insights.getPlayerName()),
+            insights.getTotalOnlineTime(),
+            insights.getDailyOnlineTime(),
+            insights.getWeeklyOnlineTime(),
+            insights.getSessionCount(),
+            insights.getAverageSessionLength(),
+            insights.getLongestSession(),
+            hourlyJson.toString()
+        );
+    }
+
+    private String timelineToJson(List<LiveTimeline.TimelineEvent> events) {
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < events.size(); i++) {
+            LiveTimeline.TimelineEvent event = events.get(i);
+            if (i > 0) json.append(",");
+            json.append(String.format(
+                "{\"timestamp\":%d,\"type\":\"%s\",\"playerName\":\"%s\"," +
+                "\"serverName\":\"%s\",\"message\":\"%s\"}",
+                event.getTimestamp(),
+                event.getType().toString(),
+                escapeJson(event.getPlayerName() != null ? event.getPlayerName() : ""),
+                escapeJson(event.getServerName() != null ? event.getServerName() : ""),
+                escapeJson(event.getMessage())
+            ));
+        }
+        json.append("]");
+        return json.toString();
+    }
+
+    private String metricsToJson(PerformanceMetrics metrics) {
+        return String.format(
+            "{\"serverName\":\"%s\",\"timestamp\":%d,\"pingLatency\":%d," +
+            "\"responseTime\":%d,\"playerCount\":%d,\"tps\":%s,\"cpuLoad\":%s," +
+            "\"ramUsage\":%s,\"ramMax\":%s,\"worldInfo\":\"%s\"}",
+            escapeJson(metrics.getServerName()),
+            metrics.getTimestamp(),
+            metrics.getPingLatency(),
+            metrics.getResponseTime(),
+            metrics.getPlayerCount(),
+            metrics.getTps() != null ? metrics.getTps() : "null",
+            metrics.getCpuLoad() != null ? metrics.getCpuLoad() : "null",
+            metrics.getRamUsage() != null ? metrics.getRamUsage() : "null",
+            metrics.getRamMax() != null ? metrics.getRamMax() : "null",
+            escapeJson(metrics.getWorldInfo() != null ? metrics.getWorldInfo() : "")
+        );
+    }
+
+    private String allMetricsToJson(Map<String, PerformanceMetrics> allMetrics) {
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, PerformanceMetrics> entry : allMetrics.entrySet()) {
+            if (!first) json.append(",");
+            json.append("\"").append(escapeJson(entry.getKey())).append("\":");
+            json.append(metricsToJson(entry.getValue()));
+            first = false;
+        }
+        json.append("}");
+        return json.toString();
+    }
+
+    private String listToJson(List<String> list) {
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) json.append(",");
+            json.append("\"").append(escapeJson(list.get(i))).append("\"");
+        }
+        json.append("]");
+        return json.toString();
     }
 }

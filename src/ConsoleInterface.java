@@ -10,10 +10,14 @@ public class ConsoleInterface {
     private ChecklistProcessor checklistProcessor;
     private UpdateManager updateManager;
     private RealTimeCheckController realTimeController;
+    private MultiPlayerRealTimeController multiRealTime;
+    private PlayerAnalytics analytics;
+    private LiveTimeline timeline;
+    private ServerPerformanceMonitor perfMonitor;
     private Scanner scanner;
     private boolean running;
 
-    public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord, UpdateManager updateManager, RealTimeCheckController realTimeController) {
+    public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord, UpdateManager updateManager, RealTimeCheckController realTimeController, MultiPlayerRealTimeController multiRealTime, PlayerAnalytics analytics, LiveTimeline timeline, ServerPerformanceMonitor perfMonitor) {
         this.playerChecker = playerChecker;
         this.multiServerChecker = multiServerChecker;
         this.config = config;
@@ -21,6 +25,10 @@ public class ConsoleInterface {
         this.discord = discord;
         this.updateManager = updateManager;
         this.realTimeController = realTimeController;
+        this.multiRealTime = multiRealTime;
+        this.analytics = analytics;
+        this.timeline = timeline;
+        this.perfMonitor = perfMonitor;
         this.checklistProcessor = new ChecklistProcessor(multiServerChecker, config);
         this.scanner = new Scanner(System.in);
         this.running = true;
@@ -54,8 +62,16 @@ public class ConsoleInterface {
         System.out.println("  status [server]                - Show server status");
         System.out.println("  servers                        - List all configured servers");
         System.out.println("  history <playername> [days]    - Show player history");
+        System.out.println("  analytics <playername>         - Show player analytics & insights");
         System.out.println("  realtime <playername> [server] - Start real-time monitoring");
         System.out.println("  realtime stop                  - Stop real-time monitoring");
+        System.out.println("  rtadd <player> [server]        - Add player to multi-player monitoring");
+        System.out.println("  rtremove <player>              - Remove player from monitoring");
+        System.out.println("  rtlist                         - List monitored players");
+        System.out.println("  rtbackground <player(s)>       - Start background monitoring");
+        System.out.println("  rtstop                         - Stop background monitoring");
+        System.out.println("  timeline [count]               - Show recent events (default 20)");
+        System.out.println("  perfstats [server]             - Show performance statistics");
         System.out.println("  checkupdates                   - Check for application updates");
         System.out.println("  help                           - Show this help message");
         System.out.println("  exit                           - Exit the program");
@@ -131,6 +147,15 @@ public class ConsoleInterface {
                 }
                 break;
 
+            case "analytics":
+                if (parts.length < 2) {
+                    System.out.println("Error: Please provide a player name.");
+                    System.out.println("Usage: analytics <playername>");
+                } else {
+                    showAnalytics(parts[1]);
+                }
+                break;
+
             case "realtime":
                 if (parts.length < 2) {
                     System.out.println("Error: Please provide a player name or 'stop'.");
@@ -147,6 +172,72 @@ public class ConsoleInterface {
                         String serverName = realtimeArgs.length > 1 ? realtimeArgs[1] : null;
                         realTimeController.startCliRealTimeCheck(playerName, serverName);
                     }
+                }
+                break;
+
+            case "rtadd":
+                if (parts.length < 2) {
+                    System.out.println("Error: Please provide a player name.");
+                    System.out.println("Usage: rtadd <playername> [server]");
+                } else {
+                    String[] args = parts[1].split("\\s+", 2);
+                    String playerName = args[0];
+                    String serverName = args.length > 1 ? args[1] : null;
+                    multiRealTime.addCliPlayer(playerName, serverName);
+                }
+                break;
+
+            case "rtremove":
+                if (parts.length < 2) {
+                    System.out.println("Error: Please provide a player name.");
+                    System.out.println("Usage: rtremove <playername>");
+                } else {
+                    multiRealTime.removeCliPlayer(parts[1]);
+                }
+                break;
+
+            case "rtlist":
+                listRealTimePlayers();
+                break;
+
+            case "rtbackground":
+                if (parts.length < 2) {
+                    System.out.println("Error: Please provide player names.");
+                    System.out.println("Usage: rtbackground <player1> [player2] ...");
+                } else {
+                    String[] playerNames = parts[1].split("\\s+");
+                    Set<String> players = new HashSet<>(Arrays.asList(playerNames));
+                    multiRealTime.startBackgroundMonitoring(players);
+                    System.out.println("Background monitoring started for " + players.size() + " player(s)");
+                }
+                break;
+
+            case "rtstop":
+                if (multiRealTime.isBackgroundActive()) {
+                    multiRealTime.stopBackgroundMonitoring();
+                    System.out.println("Background monitoring stopped");
+                } else {
+                    System.out.println("No background monitoring is active");
+                }
+                break;
+
+            case "timeline":
+                int count = 20;
+                if (parts.length > 1) {
+                    try {
+                        count = Integer.parseInt(parts[1]);
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid count, using default: 20");
+                    }
+                }
+                showTimeline(count);
+                break;
+
+            case "perfstats":
+                if (parts.length > 1) {
+                    showPerformanceStats(parts[1]);
+                } else {
+                    showAllPerformanceStats();
                 }
                 break;
 
@@ -396,6 +487,70 @@ public class ConsoleInterface {
                 System.out.println("Update canceled. You can check for updates anytime with 'checkupdates'.");
             }
         }
+    }
+
+    private void showAnalytics(String playerName) {
+        PlayerAnalytics.PlayerInsights insights = analytics.getInsights(playerName);
+        if (insights == null) {
+            System.out.println("No data available for " + playerName);
+            return;
+        }
+
+        System.out.println(insights.toString());
+        System.out.println(analytics.getActivityHeatmap(playerName));
+    }
+
+    private void listRealTimePlayers() {
+        List<String> cliPlayers = multiRealTime.listCliPlayers();
+        List<String> bgPlayers = multiRealTime.listBackgroundPlayers();
+
+        System.out.println("\nReal-Time Monitored Players:");
+        System.out.println("CLI Mode (" + cliPlayers.size() + "):");
+        for (String player : cliPlayers) {
+            System.out.println("  - " + player);
+        }
+
+        System.out.println("\nBackground Mode (" + bgPlayers.size() + "):");
+        for (String player : bgPlayers) {
+            System.out.println("  - " + player);
+        }
+        System.out.println();
+    }
+
+    private void showTimeline(int count) {
+        List<LiveTimeline.TimelineEvent> events = timeline.getRecentEvents(count);
+        System.out.println("\nRecent Events:");
+        System.out.println("=".repeat(60));
+        for (LiveTimeline.TimelineEvent event : events) {
+            System.out.println(event.toString());
+        }
+        System.out.println("=".repeat(60));
+        System.out.println();
+    }
+
+    private void showPerformanceStats(String serverName) {
+        PerformanceMetrics latest = perfMonitor.getLatest(serverName);
+        if (latest == null) {
+            System.out.println("No performance data for " + serverName);
+            return;
+        }
+
+        System.out.println(latest.toString());
+
+        ServerPerformanceMonitor.PerformanceStats stats = perfMonitor.getStats(serverName, 10);
+        if (stats != null) {
+            System.out.println(stats.toString());
+        }
+    }
+
+    private void showAllPerformanceStats() {
+        Map<String, PerformanceMetrics> allMetrics = perfMonitor.getLatestForAllServers();
+        System.out.println("\nServer Performance Overview:");
+        System.out.println("=".repeat(60));
+        for (Map.Entry<String, PerformanceMetrics> entry : allMetrics.entrySet()) {
+            System.out.println(entry.getValue().toString());
+        }
+        System.out.println("=".repeat(60));
     }
 
     private void handleConnectionError(IOException e) {
