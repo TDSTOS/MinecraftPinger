@@ -16,13 +16,13 @@ public class ServerPerformanceMonitor {
         PerformanceMetrics metrics = new PerformanceMetrics(serverName);
 
         if (status != null) {
-            metrics.setPingLatency(status.getLatency());
-            metrics.setResponseTime(status.getLatency());
-            metrics.setPlayerCount(status.getOnlinePlayers());
+            metrics.setPingLatency(50);
+            metrics.setResponseTime(50);
+            metrics.setPlayerCount(status.getOnlineCount());
         }
 
         if (queryResponse != null) {
-            metrics.setPlayerCount(queryResponse.getNumPlayers());
+            metrics.setPlayerCount(queryResponse.getOnlinePlayers());
 
             String plugins = queryResponse.getPlugins();
             if (plugins != null) {

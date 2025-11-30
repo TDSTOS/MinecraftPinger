@@ -119,10 +119,11 @@ public class LiveTimeline {
     private void persistEvent(TimelineEvent event) {
         if (event.getPlayerName() != null) {
             boolean online = event.getType() == TimelineEvent.EventType.PLAYER_JOIN;
-            historyService.recordCheck(
+            historyService.recordPlayerStatus(
                 event.getPlayerName(),
                 event.getServerName(),
-                online
+                online,
+                0
             );
         }
     }

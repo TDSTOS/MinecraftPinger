@@ -1,9 +1,11 @@
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.text.SimpleDateFormat;
 
 public class PlayerAnalytics {
     private HistoryService historyService;
     private Map<String, PlayerActivityData> activityCache;
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public PlayerAnalytics(HistoryService historyService) {
         this.historyService = historyService;
@@ -11,7 +13,7 @@ public class PlayerAnalytics {
     }
 
     public PlayerInsights getInsights(String playerName) {
-        List<HistoryEntry> history = historyService.getPlayerHistory(playerName);
+        List<HistoryEntry> history = historyService.getPlayerHistory(playerName, 30);
         if (history.isEmpty()) {
             return null;
         }
@@ -26,19 +28,24 @@ public class PlayerAnalytics {
         Long sessionStart = null;
 
         for (HistoryEntry entry : history) {
+            long timestamp = parseTimestamp(entry.getTimestamp());
+            if (timestamp == 0) continue;
+
             Calendar cal = Calendar.getInstance();
-            cal.setTimeInMillis(entry.getTimestamp());
+            cal.setTimeInMillis(timestamp);
             int hour = cal.get(Calendar.HOUR_OF_DAY);
 
             hourlyActivity.put(hour, hourlyActivity.getOrDefault(hour, 0) + 1);
 
-            if (entry.isOnline()) {
+            boolean isOnline = "online".equals(entry.getStatus());
+
+            if (isOnline) {
                 if (sessionStart == null) {
-                    sessionStart = entry.getTimestamp();
+                    sessionStart = timestamp;
                 }
             } else {
                 if (sessionStart != null) {
-                    long sessionDuration = entry.getTimestamp() - sessionStart;
+                    long sessionDuration = timestamp - sessionStart;
                     totalOnlineTime += sessionDuration;
                     sessionCount++;
                     if (sessionDuration > longestSession) {
@@ -81,16 +88,21 @@ public class PlayerAnalytics {
         Long sessionStart = null;
 
         for (HistoryEntry entry : history) {
-            if (entry.getTimestamp() < startTime) continue;
-            if (entry.getTimestamp() > endTime) break;
+            long timestamp = parseTimestamp(entry.getTimestamp());
+            if (timestamp == 0) continue;
 
-            if (entry.isOnline()) {
+            if (timestamp < startTime) continue;
+            if (timestamp > endTime) break;
+
+            boolean isOnline = "online".equals(entry.getStatus());
+
+            if (isOnline) {
                 if (sessionStart == null) {
-                    sessionStart = entry.getTimestamp();
+                    sessionStart = timestamp;
                 }
             } else {
                 if (sessionStart != null) {
-                    totalTime += entry.getTimestamp() - sessionStart;
+                    totalTime += timestamp - sessionStart;
                     sessionStart = null;
                 }
             }
@@ -101,6 +113,16 @@ public class PlayerAnalytics {
         }
 
         return totalTime;
+    }
+
+    private long parseTimestamp(String timestampStr) {
+        if (timestampStr == null) return 0;
+
+        try {
+            return DATE_FORMAT.parse(timestampStr).getTime();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     public String getActivityHeatmap(String playerName) {
