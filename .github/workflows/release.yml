@@ -2,8 +2,8 @@ name: Build and Release
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*.*.*"
 
 permissions:
   contents: write
@@ -25,7 +25,6 @@ jobs:
       - name: Prepare release directory
         run: |
           mkdir release
-          # Kopiere build output (anpassen falls anderer Ordner)
           cp -r out/* release/ 2>/dev/null || true
           cp run.sh release/run.sh
           cp update/update.bat release/update.bat 2>/dev/null || true
@@ -33,43 +32,12 @@ jobs:
           cd release
           zip -r ../release.zip .
 
-      #####################################################################
-      # AUTO-TAGGING
-      #####################################################################
-      - name: Auto-create tag if missing
-        id: autotag
-        run: |
-          # Prüfen ob ein Tag auf dem aktuellen Commit sitzt
-          EXISTING_TAG=$(git tag --points-at HEAD)
+      # IMPORTANT: No auto-tagging here anymore!
+      # The tag is created and pushed by Bolt.new before this workflow starts.
 
-          if [ -z "$EXISTING_TAG" ]; then
-            TAG=v0.${{ github.run_number }}
-            echo "No tag found. Creating tag $TAG"
-
-            # Git korrekt konfigurieren
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-
-            # Remote neu setzen mit Token zum Pushen
-            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-
-            git tag $TAG
-            git push origin $TAG
-            echo "tag_created=$TAG" >> $GITHUB_OUTPUT
-          else
-            echo "Existing tag: $EXISTING_TAG"
-            echo "tag_created=$EXISTING_TAG" >> $GITHUB_OUTPUT
-          fi
-
-      #####################################################################
-      # RELEASE ERSTELLEN
-      #####################################################################
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.autotag.outputs.tag_created }}
-          draft: false
-          prerelease: false
           files: release.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
