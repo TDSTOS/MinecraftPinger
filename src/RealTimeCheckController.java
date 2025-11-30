@@ -58,7 +58,7 @@ public class RealTimeCheckController {
                 return;
             }
         } else {
-            server = config.getServers().getFirst();
+            server = config.getServers().get(0);
         }
 
         currentCliPlayer.set(playerName);
@@ -182,7 +182,7 @@ public class RealTimeCheckController {
                 return false;
             }
         } else {
-            server = config.getServers().getFirst();
+            server = config.getServers().get(0);
         }
 
         currentDashboardPlayer.set(playerName);

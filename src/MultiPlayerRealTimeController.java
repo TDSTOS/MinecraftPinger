@@ -203,7 +203,7 @@ public class MultiPlayerRealTimeController {
 
         for (String playerName : cliPlayers) {
             try {
-                ServerConfig server = config.getServers().getFirst();
+                ServerConfig server = config.getServers().get(0);
                 PlayerCheckResult result = serverChecker.checkPlayerOnServer(playerName, server);
 
                 PlayerCheckResult previousResult = lastCliResults.get(playerName);
@@ -256,7 +256,7 @@ public class MultiPlayerRealTimeController {
     private void performBackgroundChecks() {
         for (String playerName : backgroundPlayers) {
             try {
-                ServerConfig server = config.getServers().getFirst();
+                ServerConfig server = config.getServers().get(0);
                 PlayerCheckResult result = serverChecker.checkPlayerOnServer(playerName, server);
 
                 PlayerCheckResult previousResult = lastBackgroundResults.get(playerName);
@@ -290,7 +290,7 @@ public class MultiPlayerRealTimeController {
 
                 lastBackgroundResults.put(playerName, result);
 
-            } catch (Exception _) {}
+            } catch (Exception e) {}
         }
     }
 
@@ -298,7 +298,7 @@ public class MultiPlayerRealTimeController {
         if (serverName != null && !serverName.isEmpty()) {
             return config.getServerByName(serverName);
         }
-        return config.getServers().isEmpty() ? null : config.getServers().getFirst();
+        return config.getServers().isEmpty() ? null : config.getServers().get(0);
     }
 
     public boolean isCliActive() {

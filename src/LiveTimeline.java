@@ -188,7 +188,7 @@ public class LiveTimeline {
                 case PLAYER_LEAVE -> "➖";
                 case SERVER_UP -> "🟢";
                 case SERVER_DOWN -> "🔴";
-                case CHECK_START -> "🔍";
+                case CHECK_START -> "▶";
                 case CHECK_COMPLETE -> "✓";
             };
         }

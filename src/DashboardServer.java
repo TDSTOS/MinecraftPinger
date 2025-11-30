@@ -135,7 +135,7 @@ public class DashboardServer {
         if (daysStr != null) {
             try {
                 days = Integer.parseInt(daysStr);
-            } catch (NumberFormatException _) {}
+            } catch (NumberFormatException e) {}
         }
 
         List<HistoryEntry> history = historyService.getPlayerHistory(playerName, days);
@@ -637,8 +637,8 @@ public class DashboardServer {
             ServerStatus status = entry.getValue();
 
             json.append("{");
-            json.append("\"name\":\"").append(escapeJson(server.getName())).append("\",");
-            json.append("\"ip\":\"").append(escapeJson(server.getIp())).append("\",");
+            json.append("\"name\":\"").append(Utils.escapeJson(server.getName())).append("\",");
+            json.append("\"ip\":\"").append(Utils.escapeJson(server.getIp())).append("\",");
             json.append("\"port\":").append(server.getPort()).append(",");
             json.append("\"online\":").append(status.isOnline()).append(",");
             json.append("\"onlineCount\":").append(status.getOnlineCount()).append(",");
@@ -662,11 +662,11 @@ public class DashboardServer {
             PlayerCheckResult result = entry.getValue();
 
             json.append("{");
-            json.append("\"server\":\"").append(escapeJson(result.getServer().getName())).append("\",");
+            json.append("\"server\":\"").append(Utils.escapeJson(result.getServer().getName())).append("\",");
             json.append("\"success\":").append(result.isSuccess()).append(",");
             json.append("\"online\":").append(result.isOnline()).append(",");
             json.append("\"usingQuery\":").append(result.isUsingQuery()).append(",");
-            json.append("\"error\":\"").append(escapeJson(result.getErrorMessage())).append("\"");
+            json.append("\"error\":\"").append(Utils.escapeJson(result.getErrorMessage())).append("\"");
             json.append("}");
         }
 
@@ -683,10 +683,10 @@ public class DashboardServer {
             first = false;
 
             json.append("{");
-            json.append("\"playerName\":\"").append(escapeJson(entry.getPlayerName())).append("\",");
-            json.append("\"serverName\":\"").append(escapeJson(entry.getServerName())).append("\",");
-            json.append("\"status\":\"").append(escapeJson(entry.getStatus())).append("\",");
-            json.append("\"timestamp\":\"").append(escapeJson(entry.getTimestamp())).append("\"");
+            json.append("\"playerName\":\"").append(Utils.escapeJson(entry.getPlayerName())).append("\",");
+            json.append("\"serverName\":\"").append(Utils.escapeJson(entry.getServerName())).append("\",");
+            json.append("\"status\":\"").append(Utils.escapeJson(entry.getStatus())).append("\",");
+            json.append("\"timestamp\":\"").append(Utils.escapeJson(entry.getTimestamp())).append("\"");
             json.append("}");
         }
 
