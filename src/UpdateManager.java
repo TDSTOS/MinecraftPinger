@@ -2,7 +2,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class UpdateManager {
-    private static final String VERSION = "1.0.2";
+    private static final String VERSION = "1.0.5";
     private GitHubReleaseChecker releaseChecker;
     private ConfigLoader config;
     private UpdateLogger logger;
