@@ -9,6 +9,10 @@ public class ConfigLoader {
     private String discordWebhook;
     private int dashboardPort;
     private boolean historyEnabled;
+    private boolean autoUpdateEnabled;
+    private int autoUpdateCheckIntervalMinutes;
+    private String autoUpdateRepositoryOwner;
+    private String autoUpdateRepositoryName;
 
     public ConfigLoader(String configFilePath) throws IOException {
         loadConfig(configFilePath);
@@ -37,7 +41,12 @@ public class ConfigLoader {
 
         discordWebhook = properties.getProperty("discord.webhook", "");
         dashboardPort = Integer.parseInt(properties.getProperty("dashboard.port", "8080"));
-        historyEnabled = Boolean.parseBoolean(properties.getProperty("history.enabled", "true"));
+        historyEnabled = Boolean.parseBoolean(properties.getProperty("history.enabled", "false"));
+
+        autoUpdateEnabled = Boolean.parseBoolean(properties.getProperty("autoUpdate.enabled", "true"));
+        autoUpdateCheckIntervalMinutes = Integer.parseInt(properties.getProperty("autoUpdate.checkIntervalMinutes", "60"));
+        autoUpdateRepositoryOwner = properties.getProperty("autoUpdate.repositoryOwner", "TDSTOS");
+        autoUpdateRepositoryName = properties.getProperty("autoUpdate.repositoryName", "MinecraftPinger");
     }
 
     private void loadMultiServerConfig(Properties properties) {
@@ -91,5 +100,21 @@ public class ConfigLoader {
 
     public boolean isHistoryEnabled() {
         return historyEnabled;
+    }
+
+    public boolean isAutoUpdateEnabled() {
+        return autoUpdateEnabled;
+    }
+
+    public int getAutoUpdateCheckIntervalMinutes() {
+        return autoUpdateCheckIntervalMinutes;
+    }
+
+    public String getAutoUpdateRepositoryOwner() {
+        return autoUpdateRepositoryOwner;
+    }
+
+    public String getAutoUpdateRepositoryName() {
+        return autoUpdateRepositoryName;
     }
 }

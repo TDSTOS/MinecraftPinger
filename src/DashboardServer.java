@@ -11,12 +11,14 @@ public class DashboardServer {
     private MultiServerChecker serverChecker;
     private HistoryService historyService;
     private ConfigLoader config;
+    private UpdateManager updateManager;
 
-    public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config) {
+    public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config, UpdateManager updateManager) {
         this.port = port;
         this.serverChecker = serverChecker;
         this.historyService = historyService;
         this.config = config;
+        this.updateManager = updateManager;
     }
 
     public void start() throws IOException {
@@ -153,11 +155,18 @@ public class DashboardServer {
             "        .refresh-btn { background: #2196F3; margin-bottom: 15px; }\n" +
             "        .refresh-btn:hover { background: #0b7dda; }\n" +
             "        .loading { color: #999; font-style: italic; }\n" +
+            "        .update-banner { background: #ff9800; color: #000; padding: 15px; border-radius: 4px; margin-bottom: 20px; display: none; }\n" +
+            "        .update-banner strong { display: block; margin-bottom: 5px; }\n" +
             "    </style>\n" +
             "</head>\n" +
             "<body>\n" +
             "    <div class=\"container\">\n" +
-            "        <h1>Minecraft Player Checker Dashboard</h1>\n" +
+            "        <h1>Minecraft Player Checker Dashboard v" + UpdateManager.getVersion() + "</h1>\n" +
+            "        \n" +
+            "        <div id=\"updateBanner\" class=\"update-banner\">\n" +
+            "            <strong>Update Available!</strong>\n" +
+            "            <span id=\"updateMessage\"></span>\n" +
+            "        </div>\n" +
             "        \n" +
             "        <div class=\"section\">\n" +
             "            <h2>Server Status</h2>\n" +

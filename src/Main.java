@@ -41,11 +41,22 @@ public class Main {
                 System.out.println("Discord notifications: DISABLED (optional feature)");
             }
 
+            UpdateManager updateManager = new UpdateManager(config);
+            if (config.isAutoUpdateEnabled()) {
+                System.out.println("Auto-update: ENABLED (checking every " + config.getAutoUpdateCheckIntervalMinutes() + " minutes)");
+                updateManager.startAutoUpdateCheck();
+            } else {
+                System.out.println("Auto-update: DISABLED");
+            }
+
+            UpdateExecutor.ensureUpdateScriptsExist(".");
+
             dashboardServer = new DashboardServer(
                 config.getDashboardPort(),
                 multiServerChecker,
                 historyService,
-                config
+                config,
+                updateManager
             );
 
             try {
@@ -61,11 +72,13 @@ public class Main {
                 multiServerChecker,
                 config,
                 historyService,
-                discord
+                discord,
+                updateManager
             );
 
             final DashboardServer finalDashboardServer = dashboardServer;
             final MultiServerChecker finalMultiServerChecker = multiServerChecker;
+            final UpdateManager finalUpdateManager = updateManager;
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 System.out.println("\nShutting down...");
@@ -74,6 +87,9 @@ public class Main {
                 }
                 if (finalMultiServerChecker != null) {
                     finalMultiServerChecker.shutdown();
+                }
+                if (finalUpdateManager != null) {
+                    finalUpdateManager.shutdown();
                 }
             }));
 

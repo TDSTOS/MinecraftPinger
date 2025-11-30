@@ -69,6 +69,7 @@ run.bat
 - `servers` - List all configured servers
 - `history <playername> [days]` - Show player history (requires history tracking)
   - Example: `history Steve 7`
+- `checkupdates` - Check for application updates and install if available
 - `help` - Show available commands
 - `exit` - Exit the program
 
@@ -124,6 +125,16 @@ Notch
 - Manual player checks via web interface
 - Auto-refresh capability
 - Responsive design
+- Update notifications
+
+### Auto-Update System
+- Automatic version checking from GitHub releases
+- Manual update command: `checkupdates`
+- Safe update process (graceful shutdown and restart)
+- Works on Windows, Linux, and macOS
+- Update logging to `update.log`
+- Configurable check interval
+- See [AUTO_UPDATE.md](AUTO_UPDATE.md) for detailed documentation
 
 ## Architecture
 

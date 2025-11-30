@@ -8,15 +8,17 @@ public class ConsoleInterface {
     private HistoryService historyService;
     private DiscordWebhook discord;
     private ChecklistProcessor checklistProcessor;
+    private UpdateManager updateManager;
     private Scanner scanner;
     private boolean running;
 
-    public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord) {
+    public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord, UpdateManager updateManager) {
         this.playerChecker = playerChecker;
         this.multiServerChecker = multiServerChecker;
         this.config = config;
         this.historyService = historyService;
         this.discord = discord;
+        this.updateManager = updateManager;
         this.checklistProcessor = new ChecklistProcessor(multiServerChecker, config);
         this.scanner = new Scanner(System.in);
         this.running = true;
@@ -41,7 +43,7 @@ public class ConsoleInterface {
 
     private void printWelcome() {
         System.out.println("========================================");
-        System.out.println("  Minecraft Player Online Checker");
+        System.out.println("  Minecraft Player Online Checker v" + UpdateManager.getVersion());
         System.out.println("========================================");
         System.out.println("Commands:");
         System.out.println("  check <playername> [server]    - Check if a player is online");
@@ -50,6 +52,7 @@ public class ConsoleInterface {
         System.out.println("  status [server]                - Show server status");
         System.out.println("  servers                        - List all configured servers");
         System.out.println("  history <playername> [days]    - Show player history");
+        System.out.println("  checkupdates                   - Check for application updates");
         System.out.println("  help                           - Show this help message");
         System.out.println("  exit                           - Exit the program");
         System.out.println("========================================");
@@ -122,6 +125,10 @@ public class ConsoleInterface {
                     }
                     showHistory(playerName, days);
                 }
+                break;
+
+            case "checkupdates":
+                checkForUpdates();
                 break;
 
             case "help":
@@ -336,6 +343,34 @@ public class ConsoleInterface {
             System.out.println("Daily summary (online checks):");
             for (Map.Entry<String, Integer> entry : summary.entrySet()) {
                 System.out.println("  " + entry.getKey() + ": " + entry.getValue() + " times");
+            }
+        }
+    }
+
+    private void checkForUpdates() {
+        if (updateManager == null) {
+            System.out.println("Update manager not initialized.");
+            return;
+        }
+
+        boolean updateAvailable = updateManager.checkForUpdates(false);
+
+        if (updateAvailable) {
+            System.out.println("Would you like to download and install the update now? (yes/no)");
+            System.out.print("> ");
+
+            String response = scanner.nextLine().trim().toLowerCase();
+
+            if (response.equals("yes") || response.equals("y")) {
+                System.out.println();
+                boolean success = updateManager.downloadAndInstallUpdate();
+
+                if (!success) {
+                    System.out.println();
+                    System.out.println("Update failed. You can try again later with the 'checkupdates' command.");
+                }
+            } else {
+                System.out.println("Update canceled. You can check for updates anytime with 'checkupdates'.");
             }
         }
     }
