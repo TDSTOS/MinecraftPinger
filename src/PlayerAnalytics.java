@@ -3,8 +3,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.text.SimpleDateFormat;
 
 public class PlayerAnalytics {
-    private HistoryService historyService;
-    private Map<String, PlayerActivityData> activityCache;
+    private final HistoryService historyService;
+    private final Map<String, PlayerActivityData> activityCache;
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public PlayerAnalytics(HistoryService historyService) {
@@ -150,7 +150,7 @@ public class PlayerAnalytics {
     }
 
     public static class PlayerInsights {
-        private String playerName;
+        private final String playerName;
         private long totalOnlineTime;
         private long dailyOnlineTime;
         private long weeklyOnlineTime;
@@ -226,15 +226,13 @@ public class PlayerAnalytics {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append("\nPlayer Analytics for ").append(playerName).append(":\n");
-            sb.append("  Total Online Time: ").append(formatDuration(totalOnlineTime)).append("\n");
-            sb.append("  Daily Online Time: ").append(formatDuration(dailyOnlineTime)).append("\n");
-            sb.append("  Weekly Online Time: ").append(formatDuration(weeklyOnlineTime)).append("\n");
-            sb.append("  Total Sessions: ").append(sessionCount).append("\n");
-            sb.append("  Average Session: ").append(formatDuration(averageSessionLength)).append("\n");
-            sb.append("  Longest Session: ").append(formatDuration(longestSession)).append("\n");
-            return sb.toString();
+            return "\nPlayer Analytics for " + playerName + ":\n" +
+                    "  Total Online Time: " + formatDuration(totalOnlineTime) + "\n" +
+                    "  Daily Online Time: " + formatDuration(dailyOnlineTime) + "\n" +
+                    "  Weekly Online Time: " + formatDuration(weeklyOnlineTime) + "\n" +
+                    "  Total Sessions: " + sessionCount + "\n" +
+                    "  Average Session: " + formatDuration(averageSessionLength) + "\n" +
+                    "  Longest Session: " + formatDuration(longestSession) + "\n";
         }
 
         private String formatDuration(long millis) {

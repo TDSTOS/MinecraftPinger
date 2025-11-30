@@ -4,17 +4,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
-public class MinecraftPinger {
-    private String serverIp;
-    private int serverPort;
+public record MinecraftPinger(String serverIp, int serverPort) {
     private static final int PROTOCOL_VERSION = 47;
     private static final int TIMEOUT = 5000;
-
-    public MinecraftPinger(String serverIp, int serverPort) {
-        this.serverIp = serverIp;
-        this.serverPort = serverPort;
-    }
 
     public String ping() throws IOException {
         try (Socket socket = new Socket()) {
@@ -64,7 +58,7 @@ public class MinecraftPinger {
         byte[] jsonBytes = new byte[jsonLength];
         in.readFully(jsonBytes);
 
-        return new String(jsonBytes, "UTF-8");
+        return new String(jsonBytes, StandardCharsets.UTF_8);
     }
 
     private void writeVarInt(DataOutputStream out, int value) throws IOException {
@@ -99,7 +93,7 @@ public class MinecraftPinger {
     }
 
     private void writeString(DataOutputStream out, String string) throws IOException {
-        byte[] bytes = string.getBytes("UTF-8");
+        byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
         writeVarInt(out, bytes.length);
         out.write(bytes);
     }

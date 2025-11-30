@@ -1,7 +1,7 @@
 public class ServerConfig {
-    private String name;
-    private String ip;
-    private int port;
+    private final String name;
+    private final String ip;
+    private final int port;
     private boolean queryEnabled;
 
     public ServerConfig(String name, String ip, int port) {

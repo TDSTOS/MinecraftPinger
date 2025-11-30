@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.*;
 
@@ -7,8 +8,8 @@ public class UpdateDownloader {
     private static final int TIMEOUT = 30000;
     private static final int BUFFER_SIZE = 8192;
     private static final int MAX_RETRIES = 3;
-    private String downloadUrl;
-    private String targetDirectory;
+    private final String downloadUrl;
+    private final String targetDirectory;
     private File downloadedFile;
 
     public UpdateDownloader(String downloadUrl, String targetDirectory) {
@@ -33,7 +34,7 @@ public class UpdateDownloader {
                     downloadedFile.delete();
                 }
 
-                URL url = new URL(downloadUrl);
+                URL url = URI.create(downloadUrl).toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
                 conn.setRequestMethod("GET");
@@ -52,7 +53,7 @@ public class UpdateDownloader {
                     String newUrl = conn.getHeaderField("Location");
                     System.out.println("Following redirect to: " + newUrl);
                     conn.disconnect();
-                    conn = (HttpURLConnection) new URL(newUrl).openConnection();
+                    conn = (HttpURLConnection) URI.create(newUrl).toURL().openConnection();
                     conn.setRequestMethod("GET");
                     conn.setRequestProperty("User-Agent", "MinecraftPinger-AutoUpdate");
                     conn.setConnectTimeout(TIMEOUT);

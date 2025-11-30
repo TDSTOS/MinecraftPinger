@@ -3,8 +3,8 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class MultiServerChecker {
-    private ConfigLoader config;
-    private ExecutorService executorService;
+    private final ConfigLoader config;
+    private final ExecutorService executorService;
 
     public MultiServerChecker(ConfigLoader config) {
         this.config = config;

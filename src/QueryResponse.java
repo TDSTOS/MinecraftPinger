@@ -10,7 +10,7 @@ public class QueryResponse {
     private String map;
     private int onlinePlayers;
     private int maxPlayers;
-    private List<String> playerList;
+    private final List<String> playerList;
 
     public QueryResponse() {
         this.playerList = new ArrayList<>();

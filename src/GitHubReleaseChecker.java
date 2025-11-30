@@ -1,12 +1,13 @@
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 public class GitHubReleaseChecker {
-    private String repositoryOwner;
-    private String repositoryName;
-    private String currentVersion;
+    private final String repositoryOwner;
+    private final String repositoryName;
+    private final String currentVersion;
     private String latestVersion;
     private String latestDownloadUrl;
     private long lastCheckTime;
@@ -24,7 +25,7 @@ public class GitHubReleaseChecker {
             String apiUrl = String.format("https://api.github.com/repos/%s/%s/releases/latest",
                     repositoryOwner, repositoryName);
 
-            URL url = new URL(apiUrl);
+            URL url = URI.create( apiUrl ).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
             conn.setRequestMethod("GET");

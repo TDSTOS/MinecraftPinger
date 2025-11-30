@@ -2,19 +2,19 @@ import java.io.IOException;
 import java.util.*;
 
 public class ConsoleInterface {
-    private PlayerChecker playerChecker;
-    private MultiServerChecker multiServerChecker;
-    private ConfigLoader config;
-    private HistoryService historyService;
-    private DiscordWebhook discord;
-    private ChecklistProcessor checklistProcessor;
-    private UpdateManager updateManager;
-    private RealTimeCheckController realTimeController;
-    private MultiPlayerRealTimeController multiRealTime;
-    private PlayerAnalytics analytics;
-    private LiveTimeline timeline;
-    private ServerPerformanceMonitor perfMonitor;
-    private Scanner scanner;
+    private final PlayerChecker playerChecker;
+    private final MultiServerChecker multiServerChecker;
+    private final ConfigLoader config;
+    private final HistoryService historyService;
+    private final DiscordWebhook discord;
+    private final ChecklistProcessor checklistProcessor;
+    private final UpdateManager updateManager;
+    private final RealTimeCheckController realTimeController;
+    private final MultiPlayerRealTimeController multiRealTime;
+    private final PlayerAnalytics analytics;
+    private final LiveTimeline timeline;
+    private final ServerPerformanceMonitor perfMonitor;
+    private final Scanner scanner;
     private boolean running;
 
     public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord, UpdateManager updateManager, RealTimeCheckController realTimeController, MultiPlayerRealTimeController multiRealTime, PlayerAnalytics analytics, LiveTimeline timeline, ServerPerformanceMonitor perfMonitor) {
@@ -168,9 +168,8 @@ public class ConsoleInterface {
                     if (firstArg.equalsIgnoreCase("stop")) {
                         realTimeController.stopCliRealTimeCheck();
                     } else {
-                        String playerName = firstArg;
                         String serverName = realtimeArgs.length > 1 ? realtimeArgs[1] : null;
-                        realTimeController.startCliRealTimeCheck(playerName, serverName);
+                        realTimeController.startCliRealTimeCheck(firstArg, serverName);
                     }
                 }
                 break;
@@ -388,7 +387,7 @@ public class ConsoleInterface {
         System.out.println("Querying " + server.getName() + "...");
         ServerStatus status = multiServerChecker.getServerStatus(server);
 
-        System.out.println("Server: " + server.toString());
+        System.out.println("Server: " + server);
         if (status.isOnline()) {
             System.out.println("Status: ONLINE");
             System.out.println("Players: " + status.getOnlineCount() + "/" + status.getMaxPlayers());
@@ -496,7 +495,7 @@ public class ConsoleInterface {
             return;
         }
 
-        System.out.println(insights.toString());
+        System.out.println(insights);
         System.out.println(analytics.getActivityHeatmap(playerName));
     }
 
@@ -535,11 +534,11 @@ public class ConsoleInterface {
             return;
         }
 
-        System.out.println(latest.toString());
+        System.out.println(latest);
 
         ServerPerformanceMonitor.PerformanceStats stats = perfMonitor.getStats(serverName, 10);
         if (stats != null) {
-            System.out.println(stats.toString());
+            System.out.println(stats);
         }
     }
 

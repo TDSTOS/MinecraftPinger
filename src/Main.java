@@ -120,21 +120,11 @@ public class Main {
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 System.out.println("\nShutting down...");
-                if (finalRealTimeController != null) {
-                    finalRealTimeController.shutdown();
-                }
-                if (finalMultiRealTime != null) {
-                    finalMultiRealTime.shutdown();
-                }
-                if (finalDashboardServer != null) {
-                    finalDashboardServer.stop();
-                }
-                if (finalMultiServerChecker != null) {
-                    finalMultiServerChecker.shutdown();
-                }
-                if (finalUpdateManager != null) {
-                    finalUpdateManager.shutdown();
-                }
+                finalRealTimeController.shutdown();
+                finalMultiRealTime.shutdown();
+                finalDashboardServer.stop();
+                finalMultiServerChecker.shutdown();
+                finalUpdateManager.shutdown();
             }));
 
             console.start();

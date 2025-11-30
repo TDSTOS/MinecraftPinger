@@ -4,8 +4,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ServerPerformanceMonitor {
     private static final int MAX_HISTORY_SIZE = 100;
 
-    private Map<String, LinkedList<PerformanceMetrics>> metricsHistory;
-    private HistoryService historyService;
+    private final Map<String, LinkedList<PerformanceMetrics>> metricsHistory;
+    private final HistoryService historyService;
 
     public ServerPerformanceMonitor(HistoryService historyService) {
         this.metricsHistory = new ConcurrentHashMap<>();
@@ -169,8 +169,8 @@ public class ServerPerformanceMonitor {
             int endIndex = remaining.indexOf(' ');
             if (endIndex > 0) remaining = remaining.substring(0, endIndex);
 
-            Double used = Double.parseDouble(usedStr);
-            Double max = Double.parseDouble(remaining);
+            double used = Double.parseDouble(usedStr);
+            double max = Double.parseDouble(remaining);
 
             return new Double[]{used, max};
         } catch (Exception e) {

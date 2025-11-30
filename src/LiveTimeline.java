@@ -4,8 +4,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class LiveTimeline {
     private static final int MAX_TIMELINE_SIZE = 200;
 
-    private Queue<TimelineEvent> events;
-    private HistoryService historyService;
+    private final Queue<TimelineEvent> events;
+    private final HistoryService historyService;
 
     public LiveTimeline(HistoryService historyService) {
         this.events = new ConcurrentLinkedQueue<>();
@@ -138,11 +138,11 @@ public class LiveTimeline {
             CHECK_COMPLETE
         }
 
-        private long timestamp;
-        private EventType type;
-        private String playerName;
-        private String serverName;
-        private String message;
+        private final long timestamp;
+        private final EventType type;
+        private final String playerName;
+        private final String serverName;
+        private final String message;
 
         public TimelineEvent(EventType type, String playerName, String serverName, String message) {
             this.timestamp = System.currentTimeMillis();
@@ -183,15 +183,14 @@ public class LiveTimeline {
         }
 
         public String getTypeIcon() {
-            switch (type) {
-                case PLAYER_JOIN: return "➕";
-                case PLAYER_LEAVE: return "➖";
-                case SERVER_UP: return "🟢";
-                case SERVER_DOWN: return "🔴";
-                case CHECK_START: return "🔍";
-                case CHECK_COMPLETE: return "✓";
-                default: return "•";
-            }
+            return switch (type) {
+                case PLAYER_JOIN -> "➕";
+                case PLAYER_LEAVE -> "➖";
+                case SERVER_UP -> "🟢";
+                case SERVER_DOWN -> "🔴";
+                case CHECK_START -> "🔍";
+                case CHECK_COMPLETE -> "✓";
+            };
         }
 
         @Override

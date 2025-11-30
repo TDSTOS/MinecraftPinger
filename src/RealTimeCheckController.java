@@ -4,25 +4,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class RealTimeCheckController {
-    private MultiServerChecker serverChecker;
-    private HistoryService historyService;
-    private DiscordWebhook discord;
-    private ConfigLoader config;
+    private final MultiServerChecker serverChecker;
+    private final HistoryService historyService;
+    private final DiscordWebhook discord;
+    private final ConfigLoader config;
 
     private Timer cliTimer;
     private Timer dashboardTimer;
 
-    private AtomicBoolean cliActive;
-    private AtomicBoolean dashboardActive;
+    private final AtomicBoolean cliActive;
+    private final AtomicBoolean dashboardActive;
 
-    private AtomicReference<String> currentCliPlayer;
-    private AtomicReference<String> currentDashboardPlayer;
+    private final AtomicReference<String> currentCliPlayer;
+    private final AtomicReference<String> currentDashboardPlayer;
 
-    private AtomicReference<PlayerCheckResult> lastCliResult;
-    private AtomicReference<PlayerCheckResult> lastDashboardResult;
+    private final AtomicReference<PlayerCheckResult> lastCliResult;
+    private final AtomicReference<PlayerCheckResult> lastDashboardResult;
 
-    private int cliIntervalSeconds;
-    private int dashboardIntervalSeconds;
+    private final int cliIntervalSeconds;
+    private final int dashboardIntervalSeconds;
 
     public RealTimeCheckController(MultiServerChecker serverChecker, HistoryService historyService,
                                    DiscordWebhook discord, ConfigLoader config) {
@@ -44,21 +44,21 @@ public class RealTimeCheckController {
         this.dashboardIntervalSeconds = config.getRealTimeDashboardIntervalSeconds();
     }
 
-    public synchronized boolean startCliRealTimeCheck(String playerName, String serverName) {
+    public synchronized void startCliRealTimeCheck(String playerName, String serverName) {
         if (cliActive.get()) {
             System.out.println("Real-time check already running. Stop it first with: realtime stop");
-            return false;
+            return;
         }
 
-        ServerConfig server = null;
+        ServerConfig server;
         if (serverName != null && !serverName.isEmpty()) {
             server = config.getServerByName(serverName);
             if (server == null) {
                 System.out.println("Server not found: " + serverName);
-                return false;
+                return;
             }
         } else {
-            server = config.getServers().get(0);
+            server = config.getServers().getFirst();
         }
 
         currentCliPlayer.set(playerName);
@@ -84,7 +84,6 @@ public class RealTimeCheckController {
             }
         }, 0, cliIntervalSeconds * 1000L);
 
-        return true;
     }
 
     private void performCliCheck(String playerName, ServerConfig server) {
@@ -145,10 +144,10 @@ public class RealTimeCheckController {
         }
     }
 
-    public synchronized boolean stopCliRealTimeCheck() {
+    public synchronized void stopCliRealTimeCheck() {
         if (!cliActive.get()) {
             System.out.println("No real-time check is currently running.");
-            return false;
+            return;
         }
 
         if (cliTimer != null) {
@@ -169,7 +168,6 @@ public class RealTimeCheckController {
         }
         System.out.println();
 
-        return true;
     }
 
     public synchronized boolean startDashboardRealTimeCheck(String playerName, String serverName) {
@@ -177,14 +175,14 @@ public class RealTimeCheckController {
             return false;
         }
 
-        ServerConfig server = null;
+        ServerConfig server;
         if (serverName != null && !serverName.isEmpty()) {
             server = config.getServerByName(serverName);
             if (server == null) {
                 return false;
             }
         } else {
-            server = config.getServers().get(0);
+            server = config.getServers().getFirst();
         }
 
         currentDashboardPlayer.set(playerName);

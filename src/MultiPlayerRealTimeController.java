@@ -3,27 +3,27 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MultiPlayerRealTimeController {
-    private MultiServerChecker serverChecker;
-    private HistoryService historyService;
-    private DiscordWebhook discord;
-    private ConfigLoader config;
-    private LiveTimeline timeline;
-    private ServerPerformanceMonitor perfMonitor;
+    private final MultiServerChecker serverChecker;
+    private final HistoryService historyService;
+    private final DiscordWebhook discord;
+    private final ConfigLoader config;
+    private final LiveTimeline timeline;
+    private final ServerPerformanceMonitor perfMonitor;
 
     private Timer cliTimer;
     private Timer backgroundTimer;
 
-    private AtomicBoolean cliActive;
-    private AtomicBoolean backgroundActive;
+    private final AtomicBoolean cliActive;
+    private final AtomicBoolean backgroundActive;
 
-    private Set<String> cliPlayers;
-    private Set<String> backgroundPlayers;
+    private final Set<String> cliPlayers;
+    private final Set<String> backgroundPlayers;
 
-    private Map<String, PlayerCheckResult> lastCliResults;
-    private Map<String, PlayerCheckResult> lastBackgroundResults;
+    private final Map<String, PlayerCheckResult> lastCliResults;
+    private final Map<String, PlayerCheckResult> lastBackgroundResults;
 
-    private int cliIntervalSeconds;
-    private int backgroundIntervalSeconds;
+    private final int cliIntervalSeconds;
+    private final int backgroundIntervalSeconds;
 
     public MultiPlayerRealTimeController(MultiServerChecker serverChecker, HistoryService historyService,
                                          DiscordWebhook discord, ConfigLoader config,
@@ -203,7 +203,7 @@ public class MultiPlayerRealTimeController {
 
         for (String playerName : cliPlayers) {
             try {
-                ServerConfig server = config.getServers().get(0);
+                ServerConfig server = config.getServers().getFirst();
                 PlayerCheckResult result = serverChecker.checkPlayerOnServer(playerName, server);
 
                 PlayerCheckResult previousResult = lastCliResults.get(playerName);
@@ -256,7 +256,7 @@ public class MultiPlayerRealTimeController {
     private void performBackgroundChecks() {
         for (String playerName : backgroundPlayers) {
             try {
-                ServerConfig server = config.getServers().get(0);
+                ServerConfig server = config.getServers().getFirst();
                 PlayerCheckResult result = serverChecker.checkPlayerOnServer(playerName, server);
 
                 PlayerCheckResult previousResult = lastBackgroundResults.get(playerName);
@@ -290,8 +290,7 @@ public class MultiPlayerRealTimeController {
 
                 lastBackgroundResults.put(playerName, result);
 
-            } catch (Exception e) {
-            }
+            } catch (Exception _) {}
         }
     }
 
@@ -299,7 +298,7 @@ public class MultiPlayerRealTimeController {
         if (serverName != null && !serverName.isEmpty()) {
             return config.getServerByName(serverName);
         }
-        return config.getServers().isEmpty() ? null : config.getServers().get(0);
+        return config.getServers().isEmpty() ? null : config.getServers().getFirst();
     }
 
     public boolean isCliActive() {

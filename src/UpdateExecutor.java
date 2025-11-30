@@ -1,16 +1,6 @@
 import java.io.*;
-import java.nio.file.*;
 
-public class UpdateExecutor {
-    private File updateZip;
-    private String applicationDirectory;
-    private UpdateLogger logger;
-
-    public UpdateExecutor(File updateZip, String applicationDirectory, UpdateLogger logger) {
-        this.updateZip = updateZip;
-        this.applicationDirectory = applicationDirectory;
-        this.logger = logger;
-    }
+public record UpdateExecutor(File updateZip, String applicationDirectory, UpdateLogger logger) {
 
     public boolean executeUpdate() {
         if (updateZip == null || !updateZip.exists()) {
@@ -21,7 +11,7 @@ public class UpdateExecutor {
         String os = detectOS();
         logger.logInfo("Detected OS: " + os);
 
-        File updateScript = null;
+        File updateScript;
 
         try {
             if (os.equals("windows")) {
@@ -30,7 +20,7 @@ public class UpdateExecutor {
                 updateScript = generateUnixUpdateScript();
             }
 
-            if (updateScript == null || !updateScript.exists()) {
+            if (!updateScript.exists()) {
                 logger.logError("Failed to generate update script");
                 return false;
             }
@@ -78,27 +68,27 @@ public class UpdateExecutor {
         }
 
         String scriptContent =
-            "@echo off\n" +
-            "echo Minecraft Player Checker - Update Script\n" +
-            "echo ==========================================\n" +
-            "echo.\n" +
-            "echo Waiting for application to shut down...\n" +
-            "timeout /t 3 /nobreak >nul\n" +
-            "echo.\n" +
-            "echo Extracting update...\n" +
-            "powershell -Command \"Expand-Archive -Path 'updates\\latest.zip' -DestinationPath '.' -Force\"\n" +
-            "if %ERRORLEVEL% NEQ 0 (\n" +
-            "    echo ERROR: Failed to extract update!\n" +
-            "    pause\n" +
-            "    exit /b 1\n" +
-            ")\n" +
-            "echo.\n" +
-            "echo Update extracted successfully!\n" +
-            "echo.\n" +
-            "echo Restarting application...\n" +
-            "timeout /t 2 /nobreak >nul\n" +
-            "start \"Minecraft Player Checker\" java -jar " + jarName + "\n" +
-            "exit\n";
+                "@echo off\n" +
+                        "echo Minecraft Player Checker - Update Script\n" +
+                        "echo ==========================================\n" +
+                        "echo.\n" +
+                        "echo Waiting for application to shut down...\n" +
+                        "timeout /t 3 /nobreak >nul\n" +
+                        "echo.\n" +
+                        "echo Extracting update...\n" +
+                        "powershell -Command \"Expand-Archive -Path 'updates\\latest.zip' -DestinationPath '.' -Force\"\n" +
+                        "if %ERRORLEVEL% NEQ 0 (\n" +
+                        "    echo ERROR: Failed to extract update!\n" +
+                        "    pause\n" +
+                        "    exit /b 1\n" +
+                        ")\n" +
+                        "echo.\n" +
+                        "echo Update extracted successfully!\n" +
+                        "echo.\n" +
+                        "echo Restarting application...\n" +
+                        "timeout /t 2 /nobreak >nul\n" +
+                        "start \"Minecraft Player Checker\" java -jar " + jarName + "\n" +
+                        "exit\n";
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(scriptFile))) {
             writer.write(scriptContent);
@@ -124,27 +114,27 @@ public class UpdateExecutor {
         }
 
         String scriptContent =
-            "#!/bin/bash\n" +
-            "echo \"Minecraft Player Checker - Update Script\"\n" +
-            "echo \"==========================================\"\n" +
-            "echo \"\"\n" +
-            "echo \"Waiting for application to shut down...\"\n" +
-            "sleep 3\n" +
-            "echo \"\"\n" +
-            "echo \"Extracting update...\"\n" +
-            "unzip -o updates/latest.zip -d .\n" +
-            "if [ $? -ne 0 ]; then\n" +
-            "    echo \"ERROR: Failed to extract update!\"\n" +
-            "    exit 1\n" +
-            "fi\n" +
-            "echo \"\"\n" +
-            "echo \"Update extracted successfully!\"\n" +
-            "echo \"\"\n" +
-            "echo \"Restarting application...\"\n" +
-            "sleep 2\n" +
-            "nohup java -jar " + jarName + " > /dev/null 2>&1 &\n" +
-            "echo \"Application restarted in background\"\n" +
-            "exit 0\n";
+                "#!/bin/bash\n" +
+                        "echo \"Minecraft Player Checker - Update Script\"\n" +
+                        "echo \"==========================================\"\n" +
+                        "echo \"\"\n" +
+                        "echo \"Waiting for application to shut down...\"\n" +
+                        "sleep 3\n" +
+                        "echo \"\"\n" +
+                        "echo \"Extracting update...\"\n" +
+                        "unzip -o updates/latest.zip -d .\n" +
+                        "if [ $? -ne 0 ]; then\n" +
+                        "    echo \"ERROR: Failed to extract update!\"\n" +
+                        "    exit 1\n" +
+                        "fi\n" +
+                        "echo \"\"\n" +
+                        "echo \"Update extracted successfully!\"\n" +
+                        "echo \"\"\n" +
+                        "echo \"Restarting application...\"\n" +
+                        "sleep 2\n" +
+                        "nohup java -jar " + jarName + " > /dev/null 2>&1 &\n" +
+                        "echo \"Application restarted in background\"\n" +
+                        "exit 0\n";
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(scriptFile))) {
             writer.write(scriptContent);
@@ -201,7 +191,7 @@ public class UpdateExecutor {
         }).start();
     }
 
-    public static boolean ensureUpdateScriptsExist(String applicationDirectory) {
+    public static void ensureUpdateScriptsExist(String applicationDirectory) {
         try {
             UpdateLogger tempLogger = new UpdateLogger();
 
@@ -210,10 +200,8 @@ public class UpdateExecutor {
             executor.generateWindowsUpdateScript();
             executor.generateUnixUpdateScript();
 
-            return true;
         } catch (Exception e) {
             System.err.println("Failed to ensure update scripts exist: " + e.getMessage());
-            return false;
         }
     }
 }

@@ -3,17 +3,10 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class MinecraftQuery {
-    private String serverIp;
-    private int serverPort;
+public record MinecraftQuery(String serverIp, int serverPort) {
     private static final int TIMEOUT = 5000;
     private static final byte HANDSHAKE = 9;
     private static final byte STAT = 0;
-
-    public MinecraftQuery(String serverIp, int serverPort) {
-        this.serverIp = serverIp;
-        this.serverPort = serverPort;
-    }
 
     public QueryResponse query() throws IOException {
         try (DatagramSocket socket = new DatagramSocket()) {

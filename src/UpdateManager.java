@@ -4,8 +4,8 @@ import java.util.TimerTask;
 public class UpdateManager {
     private static final String VERSION = "1.1.2";
     private GitHubReleaseChecker releaseChecker;
-    private ConfigLoader config;
-    private UpdateLogger logger;
+    private final ConfigLoader config;
+    private final UpdateLogger logger;
     private Timer updateTimer;
     private boolean updateAvailable;
 

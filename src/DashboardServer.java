@@ -7,16 +7,16 @@ import java.util.concurrent.Executors;
 
 public class DashboardServer {
     private HttpServer server;
-    private int port;
-    private MultiServerChecker serverChecker;
-    private HistoryService historyService;
-    private ConfigLoader config;
-    private UpdateManager updateManager;
-    private RealTimeCheckController realTimeController;
-    private MultiPlayerRealTimeController multiRealTime;
-    private PlayerAnalytics analytics;
-    private LiveTimeline timeline;
-    private ServerPerformanceMonitor perfMonitor;
+    private final int port;
+    private final MultiServerChecker serverChecker;
+    private final HistoryService historyService;
+    private final ConfigLoader config;
+    private final UpdateManager updateManager;
+    private final RealTimeCheckController realTimeController;
+    private final MultiPlayerRealTimeController multiRealTime;
+    private final PlayerAnalytics analytics;
+    private final LiveTimeline timeline;
+    private final ServerPerformanceMonitor perfMonitor;
 
     public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config, UpdateManager updateManager, RealTimeCheckController realTimeController, MultiPlayerRealTimeController multiRealTime, PlayerAnalytics analytics, LiveTimeline timeline, ServerPerformanceMonitor perfMonitor) {
         this.port = port;
@@ -135,9 +135,7 @@ public class DashboardServer {
         if (daysStr != null) {
             try {
                 days = Integer.parseInt(daysStr);
-            } catch (NumberFormatException e) {
-                days = 7;
-            }
+            } catch (NumberFormatException _) {}
         }
 
         List<HistoryEntry> history = historyService.getPlayerHistory(playerName, days);
@@ -247,15 +245,14 @@ public class DashboardServer {
         boolean newState = realTimeController.isDashboardActive();
         String currentPlayer = realTimeController.getCurrentDashboardPlayer();
 
-        StringBuilder json = new StringBuilder();
-        json.append("{");
-        json.append("\"success\":").append(success).append(",");
-        json.append("\"active\":").append(newState).append(",");
-        json.append("\"player\":").append(currentPlayer != null ? "\"" + currentPlayer + "\"" : "null");
-        json.append("}");
+        String json = "{" +
+                "\"success\":" + success + "," +
+                "\"active\":" + newState + "," +
+                "\"player\":" + (currentPlayer != null ? "\"" + currentPlayer + "\"" : "null") +
+                "}";
 
         setCORSHeaders(exchange);
-        sendResponse(exchange, 200, json.toString(), "application/json");
+        sendResponse(exchange, 200, json, "application/json");
     }
 
     private String buildDashboardHTML() {
@@ -869,7 +866,7 @@ public class DashboardServer {
             insights.getSessionCount(),
             insights.getAverageSessionLength(),
             insights.getLongestSession(),
-            hourlyJson.toString()
+            hourlyJson
         );
     }
 

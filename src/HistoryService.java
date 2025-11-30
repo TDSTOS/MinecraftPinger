@@ -1,5 +1,7 @@
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.*;
 
 public class HistoryService {
@@ -72,17 +74,18 @@ public class HistoryService {
         try {
             supabase.select("player_history", "limit=1");
         } catch (Exception e) {
-            throw new RuntimeException("Cannot connect to Supabase or table 'player_history' does not exist. " +
-                "Please create the table manually in Supabase dashboard:\n" +
-                "CREATE TABLE player_history (\n" +
-                "  id SERIAL PRIMARY KEY,\n" +
-                "  player_name TEXT NOT NULL,\n" +
-                "  server_name TEXT NOT NULL,\n" +
-                "  status TEXT NOT NULL,\n" +
-                "  timestamp TIMESTAMPTZ DEFAULT NOW(),\n" +
-                "  online_count INTEGER,\n" +
-                "  query_data TEXT\n" +
-                ");", e);
+            throw new RuntimeException("""
+                    Cannot connect to Supabase or table 'player_history' does not exist. \
+                    Please create the table manually in Supabase dashboard:
+                    CREATE TABLE player_history (
+                      id SERIAL PRIMARY KEY,
+                      player_name TEXT NOT NULL,
+                      server_name TEXT NOT NULL,
+                      status TEXT NOT NULL,
+                      timestamp TIMESTAMPTZ DEFAULT NOW(),
+                      online_count INTEGER,
+                      query_data TEXT
+                    );""", e);
         }
     }
 
@@ -93,7 +96,7 @@ public class HistoryService {
 
         try {
             String status = online ? "online" : "offline";
-            String timestamp = DATE_FORMAT.format(new Date());
+            String timestamp = DATE_FORMAT.format(Date.from(Instant.now( Clock.systemUTC() )));
 
             String jsonData = String.format(
                 "{\"player_name\":\"%s\",\"server_name\":\"%s\",\"status\":\"%s\",\"online_count\":%d,\"timestamp\":\"%s\"}",

@@ -1,18 +1,16 @@
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Date;
 
-public class DiscordWebhook {
-    private String webhookUrl;
+public record DiscordWebhook(String webhookUrl) {
     private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
-
-    public DiscordWebhook(String webhookUrl) {
-        this.webhookUrl = webhookUrl;
-    }
 
     public boolean isEnabled() {
         return webhookUrl != null && !webhookUrl.isEmpty();
@@ -24,10 +22,10 @@ public class DiscordWebhook {
         try {
             String time = TIME_FORMAT.format(new Date());
             String message = String.format(
-                "{\"embeds\":[{\"title\":\"Player Online\",\"description\":\"**%s** is now online on **%s**\",\"color\":5763719,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
-                escapeJson(playerName),
-                escapeJson(serverName),
-                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
+                    "{\"embeds\":[{\"title\":\"Player Online\",\"description\":\"**%s** is now online on **%s**\",\"color\":5763719,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
+                    escapeJson(playerName),
+                    escapeJson(serverName),
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(Date.from(Instant.now(Clock.systemUTC())))
             );
 
             sendWebhook(message);
@@ -41,10 +39,10 @@ public class DiscordWebhook {
 
         try {
             String message = String.format(
-                "{\"embeds\":[{\"title\":\"Player Offline\",\"description\":\"**%s** is now offline on **%s**\",\"color\":15158332,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
-                escapeJson(playerName),
-                escapeJson(serverName),
-                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
+                    "{\"embeds\":[{\"title\":\"Player Offline\",\"description\":\"**%s** is now offline on **%s**\",\"color\":15158332,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
+                    escapeJson(playerName),
+                    escapeJson(serverName),
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
             );
 
             sendWebhook(message);
@@ -58,10 +56,10 @@ public class DiscordWebhook {
 
         try {
             String message = String.format(
-                "{\"embeds\":[{\"title\":\"Server Outage\",\"description\":\"**%s** is currently unreachable.\\n\\nError: %s\",\"color\":15105570,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
-                escapeJson(serverName),
-                escapeJson(error),
-                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
+                    "{\"embeds\":[{\"title\":\"Server Outage\",\"description\":\"**%s** is currently unreachable.\\n\\nError: %s\",\"color\":15105570,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
+                    escapeJson(serverName),
+                    escapeJson(error),
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
             );
 
             sendWebhook(message);
@@ -75,9 +73,9 @@ public class DiscordWebhook {
 
         try {
             String message = String.format(
-                "{\"embeds\":[{\"title\":\"Daily Summary\",\"description\":\"%s\",\"color\":3447003,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
-                escapeJson(summary),
-                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
+                    "{\"embeds\":[{\"title\":\"Daily Summary\",\"description\":\"%s\",\"color\":3447003,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
+                    escapeJson(summary),
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
             );
 
             sendWebhook(message);
@@ -87,7 +85,7 @@ public class DiscordWebhook {
     }
 
     private void sendWebhook(String jsonPayload) throws IOException {
-        URL url = new URL(webhookUrl);
+        URL url = URI.create(webhookUrl).toURL();
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
         conn.setRequestMethod("POST");

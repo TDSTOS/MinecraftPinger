@@ -1,20 +1,31 @@
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-public class SupabaseClient {
-    private String supabaseUrl;
-    private String supabaseKey;
+public record SupabaseClient(String supabaseUrl, String supabaseKey) {
 
-    public SupabaseClient(String supabaseUrl, String supabaseKey) {
-        this.supabaseUrl = supabaseUrl;
-        this.supabaseKey = supabaseKey;
+
+    public void insert(String table, String jsonData) throws IOException {
+        HttpURLConnection conn = getHttpURLConnection(table);
+
+        try (OutputStream os = conn.getOutputStream()) {
+            byte[] input = jsonData.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode >= 200 && responseCode < 300) {
+            readResponse(conn.getInputStream());
+        } else {
+            String error = readResponse(conn.getErrorStream());
+            throw new IOException("Supabase insert failed: " + responseCode + " - " + error);
+        }
     }
 
-
-    public String insert(String table, String jsonData) throws IOException {
-        URL url = new URL(supabaseUrl + "/rest/v1/" + table);
+    private HttpURLConnection getHttpURLConnection(String table) throws IOException {
+        URL url = URI.create(supabaseUrl + "/rest/v1/" + table).toURL();
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
         conn.setRequestMethod("POST");
@@ -25,35 +36,11 @@ public class SupabaseClient {
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);
         conn.setDoOutput(true);
-
-        try (OutputStream os = conn.getOutputStream()) {
-            byte[] input = jsonData.getBytes(StandardCharsets.UTF_8);
-            os.write(input, 0, input.length);
-        }
-
-        int responseCode = conn.getResponseCode();
-        if (responseCode >= 200 && responseCode < 300) {
-            return readResponse(conn.getInputStream());
-        } else {
-            String error = readResponse(conn.getErrorStream());
-            throw new IOException("Supabase insert failed: " + responseCode + " - " + error);
-        }
+        return conn;
     }
 
     public String select(String table, String filter) throws IOException {
-        String urlStr = supabaseUrl + "/rest/v1/" + table;
-        if (filter != null && !filter.isEmpty()) {
-            urlStr += "?" + filter;
-        }
-
-        URL url = new URL(urlStr);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty("apikey", supabaseKey);
-        conn.setRequestProperty("Authorization", "Bearer " + supabaseKey);
-        conn.setConnectTimeout(5000);
-        conn.setReadTimeout(5000);
+        HttpURLConnection conn = getHttpURLConnection(table, filter);
 
         int responseCode = conn.getResponseCode();
         if (responseCode >= 200 && responseCode < 300) {
@@ -62,6 +49,23 @@ public class SupabaseClient {
             String error = readResponse(conn.getErrorStream());
             throw new IOException("Supabase select failed: " + responseCode + " - " + error);
         }
+    }
+
+    private HttpURLConnection getHttpURLConnection(String table, String filter) throws IOException {
+        String urlStr = supabaseUrl + "/rest/v1/" + table;
+        if (filter != null && !filter.isEmpty()) {
+            urlStr += "?" + filter;
+        }
+
+        URL url = URI.create(urlStr).toURL();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("apikey", supabaseKey);
+        conn.setRequestProperty("Authorization", "Bearer " + supabaseKey);
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
+        return conn;
     }
 
     private String readResponse(InputStream is) throws IOException {

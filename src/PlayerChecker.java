@@ -3,7 +3,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PlayerChecker {
-    private MinecraftPinger pinger;
+    private final MinecraftPinger pinger;
     private String lastResponse;
 
     public PlayerChecker(MinecraftPinger pinger) {
@@ -132,7 +132,6 @@ public class PlayerChecker {
             return null;
         }
 
-        String numberStr = jsonResponse.substring(colonIndex + 1, endIndex).trim();
-        return numberStr;
+        return jsonResponse.substring(colonIndex + 1, endIndex).trim();
     }
 }

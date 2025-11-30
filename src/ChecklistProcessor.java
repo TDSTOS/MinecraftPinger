@@ -1,14 +1,10 @@
 import java.io.*;
 import java.util.*;
 
-public class ChecklistProcessor {
-    private MultiServerChecker serverChecker;
-    private ConfigLoader config;
-
-    public ChecklistProcessor(MultiServerChecker serverChecker, ConfigLoader config) {
-        this.serverChecker = serverChecker;
-        this.config = config;
-    }
+public record ChecklistProcessor(
+        MultiServerChecker serverChecker,
+        ConfigLoader config
+) {
 
     public void processChecklist(String filePath, String serverName) {
         List<String> playerNames = loadPlayerNames(filePath);
@@ -161,10 +157,7 @@ public class ChecklistProcessor {
     }
 
     private String repeat(String s, int count) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < count; i++) {
-            sb.append(s);
-        }
-        return sb.toString();
+        return String.valueOf(s).repeat(Math.max(0, count));
     }
+
 }
