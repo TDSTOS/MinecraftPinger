@@ -33,7 +33,7 @@ jobs:
           mkdir release
           # Copy everything except .git, .github, release folder itself, and the workflow file
           shopt -s extglob
-          cp -r !(release|.git|.github) release/
+          cp -r !(release|.git|.github|config.properties) release/
 
           # Make sure run.sh and update scripts are included
           cp run.sh release/ 2>/dev/null || true
