@@ -4,12 +4,17 @@ A comprehensive Java application that monitors Minecraft server status and playe
 
 ## Requirements
 
+**Core Requirements:**
 - Java Development Kit (JDK) 8 or higher
 - A Minecraft server to connect to
-- (Optional) Supabase account for historical tracking
-- (Optional) Discord webhook for notifications
+
+**Optional Features:**
+- Supabase account (for historical tracking - disabled by default)
+- Discord webhook (for notifications - optional)
 
 ## Quick Start
+
+**Important:** The application works out-of-the-box without any optional features. If you see "History tracking: DISABLED" or "Discord notifications: DISABLED", this is normal and expected. These are optional enhancements.
 
 ### 1. Configure Servers
 
@@ -172,16 +177,33 @@ server.3.port=25567
 ```
 
 ### History Tracking Setup
+
+**Note:** History tracking is OPTIONAL and disabled by default (`history.enabled=false`).
+
+To enable history tracking:
+
 1. Create a Supabase account at https://supabase.com
 2. Create a new project
-3. Add credentials to `.env` file:
+3. Create the required table in Supabase SQL Editor:
+```sql
+CREATE TABLE player_history (
+  id SERIAL PRIMARY KEY,
+  player_name TEXT NOT NULL,
+  server_name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  timestamp TIMESTAMPTZ DEFAULT NOW(),
+  online_count INTEGER,
+  query_data TEXT
+);
+
+CREATE INDEX idx_player_timestamp ON player_history(player_name, timestamp DESC);
+```
+4. Add credentials to `.env` file:
 ```
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
-4. Enable in config: `history.enabled=true`
-
-The application will automatically create the required database tables.
+5. Enable in config: `history.enabled=true`
 
 ### Discord Notifications Setup
 1. Create a Discord webhook in your server settings

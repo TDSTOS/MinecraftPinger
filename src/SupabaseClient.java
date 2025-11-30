@@ -12,31 +12,6 @@ public class SupabaseClient {
         this.supabaseKey = supabaseKey;
     }
 
-    public String executeQuery(String query) throws IOException {
-        URL url = new URL(supabaseUrl + "/rest/v1/rpc/execute_sql");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setRequestProperty("apikey", supabaseKey);
-        conn.setRequestProperty("Authorization", "Bearer " + supabaseKey);
-        conn.setDoOutput(true);
-
-        String jsonPayload = "{\"query\":\"" + escapeJson(query) + "\"}";
-
-        try (OutputStream os = conn.getOutputStream()) {
-            byte[] input = jsonPayload.getBytes(StandardCharsets.UTF_8);
-            os.write(input, 0, input.length);
-        }
-
-        int responseCode = conn.getResponseCode();
-        if (responseCode >= 200 && responseCode < 300) {
-            return readResponse(conn.getInputStream());
-        } else {
-            String error = readResponse(conn.getErrorStream());
-            throw new IOException("Supabase request failed: " + responseCode + " - " + error);
-        }
-    }
 
     public String insert(String table, String jsonData) throws IOException {
         URL url = new URL(supabaseUrl + "/rest/v1/" + table);
@@ -47,6 +22,8 @@ public class SupabaseClient {
         conn.setRequestProperty("apikey", supabaseKey);
         conn.setRequestProperty("Authorization", "Bearer " + supabaseKey);
         conn.setRequestProperty("Prefer", "return=representation");
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
         conn.setDoOutput(true);
 
         try (OutputStream os = conn.getOutputStream()) {
@@ -75,6 +52,8 @@ public class SupabaseClient {
         conn.setRequestMethod("GET");
         conn.setRequestProperty("apikey", supabaseKey);
         conn.setRequestProperty("Authorization", "Bearer " + supabaseKey);
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
 
         int responseCode = conn.getResponseCode();
         if (responseCode >= 200 && responseCode < 300) {

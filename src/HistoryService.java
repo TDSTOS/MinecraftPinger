@@ -21,16 +21,27 @@ public class HistoryService {
                     supabaseKey = env.get("VITE_SUPABASE_ANON_KEY");
                 }
 
-                if (supabaseUrl != null && supabaseKey != null) {
+                if (supabaseUrl != null && !supabaseUrl.isEmpty() &&
+                    supabaseKey != null && !supabaseKey.isEmpty()) {
                     this.supabase = new SupabaseClient(supabaseUrl, supabaseKey);
-                    initializeDatabase();
+
+                    try {
+                        initializeDatabase();
+                        System.out.println("History service connected successfully.");
+                    } catch (Exception dbError) {
+                        System.err.println("Warning: Could not initialize Supabase database.");
+                        System.err.println("Reason: " + dbError.getMessage());
+                        System.err.println("History tracking will be disabled.");
+                        this.enabled = false;
+                        this.supabase = null;
+                    }
                 } else {
-                    System.err.println("Warning: Supabase credentials not found. History tracking disabled.");
                     this.enabled = false;
                 }
             } catch (Exception e) {
                 System.err.println("Warning: Failed to initialize history service: " + e.getMessage());
                 this.enabled = false;
+                this.supabase = null;
             }
         }
     }
@@ -59,24 +70,19 @@ public class HistoryService {
 
     private void initializeDatabase() {
         try {
-            String createTableQuery =
-                "CREATE TABLE IF NOT EXISTS player_history (" +
-                "id SERIAL PRIMARY KEY, " +
-                "player_name TEXT NOT NULL, " +
-                "server_name TEXT NOT NULL, " +
-                "status TEXT NOT NULL, " +
-                "timestamp TIMESTAMPTZ DEFAULT NOW(), " +
-                "online_count INTEGER, " +
-                "query_data TEXT" +
-                ")";
-            supabase.executeQuery(createTableQuery);
-
-            String createIndexQuery =
-                "CREATE INDEX IF NOT EXISTS idx_player_timestamp ON player_history(player_name, timestamp DESC)";
-            supabase.executeQuery(createIndexQuery);
-
+            supabase.select("player_history", "limit=1");
         } catch (Exception e) {
-            System.err.println("Warning: Could not initialize database: " + e.getMessage());
+            throw new RuntimeException("Cannot connect to Supabase or table 'player_history' does not exist. " +
+                "Please create the table manually in Supabase dashboard:\n" +
+                "CREATE TABLE player_history (\n" +
+                "  id SERIAL PRIMARY KEY,\n" +
+                "  player_name TEXT NOT NULL,\n" +
+                "  server_name TEXT NOT NULL,\n" +
+                "  status TEXT NOT NULL,\n" +
+                "  timestamp TIMESTAMPTZ DEFAULT NOW(),\n" +
+                "  online_count INTEGER,\n" +
+                "  query_data TEXT\n" +
+                ");", e);
         }
     }
 

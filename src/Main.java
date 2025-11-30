@@ -31,14 +31,14 @@ public class Main {
             if (historyService.isEnabled()) {
                 System.out.println("History tracking: ENABLED");
             } else {
-                System.out.println("History tracking: DISABLED");
+                System.out.println("History tracking: DISABLED (optional feature)");
             }
 
             DiscordWebhook discord = new DiscordWebhook(config.getDiscordWebhook());
             if (discord.isEnabled()) {
                 System.out.println("Discord notifications: ENABLED");
             } else {
-                System.out.println("Discord notifications: DISABLED");
+                System.out.println("Discord notifications: DISABLED (optional feature)");
             }
 
             dashboardServer = new DashboardServer(
