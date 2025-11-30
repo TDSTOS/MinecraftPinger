@@ -34,6 +34,7 @@ public class DashboardServer {
         server.createContext("/api/realtime/start", this::handleRealtimeStart);
         server.createContext("/api/realtime/stop", this::handleRealtimeStop);
         server.createContext("/api/realtime/status", this::handleRealtimeStatus);
+        server.createContext("/realtime/toggle", this::handleRealtimeToggle);
 
         server.start();
         System.out.println("Dashboard server started on http://localhost:" + port);
@@ -203,6 +204,43 @@ public class DashboardServer {
         sendResponse(exchange, 200, json.toString(), "application/json");
     }
 
+    private void handleRealtimeToggle(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}", "application/json");
+            return;
+        }
+
+        String query = exchange.getRequestURI().getQuery();
+        String playerName = getQueryParam(query, "player");
+
+        if (playerName == null || playerName.isEmpty()) {
+            sendResponse(exchange, 400, "{\"error\":\"Player parameter required\"}", "application/json");
+            return;
+        }
+
+        boolean currentlyActive = realTimeController.isDashboardActive();
+        boolean success;
+
+        if (currentlyActive) {
+            success = realTimeController.stopDashboardRealTimeCheck();
+        } else {
+            success = realTimeController.startDashboardRealTimeCheck(playerName, null);
+        }
+
+        boolean newState = realTimeController.isDashboardActive();
+        String currentPlayer = realTimeController.getCurrentDashboardPlayer();
+
+        StringBuilder json = new StringBuilder();
+        json.append("{");
+        json.append("\"success\":").append(success).append(",");
+        json.append("\"active\":").append(newState).append(",");
+        json.append("\"player\":").append(currentPlayer != null ? "\"" + currentPlayer + "\"" : "null");
+        json.append("}");
+
+        setCORSHeaders(exchange);
+        sendResponse(exchange, 200, json.toString(), "application/json");
+    }
+
     private String buildDashboardHTML() {
         return "<!DOCTYPE html>\n" +
             "<html>\n" +
@@ -236,6 +274,12 @@ public class DashboardServer {
             "        .loading { color: #999; font-style: italic; }\n" +
             "        .update-banner { background: #ff9800; color: #000; padding: 15px; border-radius: 4px; margin-bottom: 20px; display: none; }\n" +
             "        .update-banner strong { display: block; margin-bottom: 5px; }\n" +
+            "        .realtime-toggle-btn { background: #FF9800; margin-left: 10px; }\n" +
+            "        .realtime-toggle-btn:hover { background: #F57C00; }\n" +
+            "        .realtime-toggle-btn.active { background: #f44336; }\n" +
+            "        .realtime-toggle-btn.active:hover { background: #d32f2f; }\n" +
+            "        .realtime-status { font-size: 0.9em; color: #999; margin-top: 10px; }\n" +
+            "        .realtime-status.active { color: #4CAF50; font-weight: bold; }\n" +
             "    </style>\n" +
             "</head>\n" +
             "<body>\n" +
@@ -263,7 +307,9 @@ public class DashboardServer {
             "                    <option value=\"all\">All Servers</option>\n" +
             "                </select>\n" +
             "                <button onclick=\"checkPlayer()\">Check Player</button>\n" +
+            "                <button id=\"realtimeToggleBtn\" class=\"realtime-toggle-btn\" onclick=\"toggleRealtimeCheck()\">Start RealTime Check</button>\n" +
             "            </div>\n" +
+            "            <div id=\"realtimeStatusIndicator\" class=\"realtime-status\">RealTime mode: Inactive</div>\n" +
             "            <div id=\"result\"></div>\n" +
             "        </div>\n" +
             "        \n" +
@@ -359,7 +405,89 @@ public class DashboardServer {
             "            }\n" +
             "        }\n" +
             "        \n" +
-            "        async function toggleRealtime() {\n" +
+            "        async function toggleRealtimeCheck() {\n" +
+            "            const playerName = document.getElementById('playerName').value.trim();\n" +
+            "            \n" +
+            "            if (!playerName) {\n" +
+            "                alert('Please enter a player name');\n" +
+            "                return;\n" +
+            "            }\n" +
+            "            \n" +
+            "            try {\n" +
+            "                const response = await fetch('/realtime/toggle?player=' + encodeURIComponent(playerName));\n" +
+            "                const data = await response.json();\n" +
+            "                \n" +
+            "                if (data.success) {\n" +
+            "                    updateRealtimeButtonState(data.active, data.player);\n" +
+            "                    \n" +
+            "                    if (data.active) {\n" +
+            "                        startDashboardAutoRefresh();\n" +
+            "                    } else {\n" +
+            "                        stopDashboardAutoRefresh();\n" +
+            "                    }\n" +
+            "                }\n" +
+            "            } catch (error) {\n" +
+            "                alert('Error toggling realtime check: ' + error.message);\n" +
+            "            }\n" +
+            "        }\n" +
+            "        \n" +
+            "        function updateRealtimeButtonState(active, player) {\n" +
+            "            const btn = document.getElementById('realtimeToggleBtn');\n" +
+            "            const statusDiv = document.getElementById('realtimeStatusIndicator');\n" +
+            "            \n" +
+            "            if (active) {\n" +
+            "                btn.textContent = 'Stop RealTime Check';\n" +
+            "                btn.classList.add('active');\n" +
+            "                statusDiv.textContent = 'RealTime mode: Active (monitoring ' + player + ' - updates every 60s)';\n" +
+            "                statusDiv.classList.add('active');\n" +
+            "            } else {\n" +
+            "                btn.textContent = 'Start RealTime Check';\n" +
+            "                btn.classList.remove('active');\n" +
+            "                statusDiv.textContent = 'RealTime mode: Inactive';\n" +
+            "                statusDiv.classList.remove('active');\n" +
+            "            }\n" +
+            "        }\n" +
+            "        \n" +
+            "        let dashboardRefreshInterval = null;\n" +
+            "        \n" +
+            "        function startDashboardAutoRefresh() {\n" +
+            "            if (dashboardRefreshInterval) return;\n" +
+            "            \n" +
+            "            dashboardRefreshInterval = setInterval(() => {\n" +
+            "                loadServers();\n" +
+            "                const playerName = document.getElementById('playerName').value.trim();\n" +
+            "                if (playerName) {\n" +
+            "                    checkPlayer();\n" +
+            "                }\n" +
+            "            }, 60000);\n" +
+            "            \n" +
+            "            console.log('Dashboard auto-refresh started (60s interval)');\n" +
+            "        }\n" +
+            "        \n" +
+            "        function stopDashboardAutoRefresh() {\n" +
+            "            if (dashboardRefreshInterval) {\n" +
+            "                clearInterval(dashboardRefreshInterval);\n" +
+            "                dashboardRefreshInterval = null;\n" +
+            "                console.log('Dashboard auto-refresh stopped');\n" +
+            "            }\n" +
+            "        }\n" +
+            "        \n" +
+            "        async function checkRealtimeState() {\n" +
+            "            try {\n" +
+            "                const response = await fetch('/api/realtime/status');\n" +
+            "                const data = await response.json();\n" +
+            "                \n" +
+            "                if (data.active && data.player) {\n" +
+            "                    updateRealtimeButtonState(true, data.player);\n" +
+            "                    document.getElementById('playerName').value = data.player;\n" +
+            "                    startDashboardAutoRefresh();\n" +
+            "                }\n" +
+            "            } catch (error) {\n" +
+            "                console.error('Failed to check realtime state:', error);\n" +
+            "            }\n" +
+            "        }\n" +
+            "        \n" +
+            "        async function toggleRealtime() {"\n" +
             "            const btn = document.getElementById('realtimeBtn');\n" +
             "            const playerName = document.getElementById('realtimePlayerName').value.trim();\n" +
             "            const serverName = document.getElementById('realtimeServerSelect').value;\n" +
@@ -476,6 +604,8 @@ public class DashboardServer {
             "                startRealtimePolling();\n" +
             "            }\n" +
             "        });\n" +
+            "        \n" +
+            "        checkRealtimeState();\n" +
             "    </script>\n" +
             "</body>\n" +
             "</html>";
