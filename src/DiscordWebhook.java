@@ -73,7 +73,7 @@ public record DiscordWebhook(String webhookUrl) {
 
         try {
             String message = String.format(
-                    "{\"embeds\":[{\"title\":\"Server Outage\",\"description\":\"**%s** is now online again.\",\"color\":15105570,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
+                    "{\"embeds\":[{\"title\":\"Server Online\",\"description\":\"**%s** is now online again.\",\"color\":5763719,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
                     escapeJson(serverName),
                     new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
             );
