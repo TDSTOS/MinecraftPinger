@@ -12,13 +12,15 @@ public class DashboardServer {
     private HistoryService historyService;
     private ConfigLoader config;
     private UpdateManager updateManager;
+    private RealTimeCheckController realTimeController;
 
-    public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config, UpdateManager updateManager) {
+    public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config, UpdateManager updateManager, RealTimeCheckController realTimeController) {
         this.port = port;
         this.serverChecker = serverChecker;
         this.historyService = historyService;
         this.config = config;
         this.updateManager = updateManager;
+        this.realTimeController = realTimeController;
     }
 
     public void start() throws IOException {
@@ -29,6 +31,9 @@ public class DashboardServer {
         server.createContext("/api/servers", this::handleServers);
         server.createContext("/api/check", this::handleCheck);
         server.createContext("/api/history", this::handleHistory);
+        server.createContext("/api/realtime/start", this::handleRealtimeStart);
+        server.createContext("/api/realtime/stop", this::handleRealtimeStop);
+        server.createContext("/api/realtime/status", this::handleRealtimeStatus);
 
         server.start();
         System.out.println("Dashboard server started on http://localhost:" + port);
@@ -124,6 +129,80 @@ public class DashboardServer {
         sendResponse(exchange, 200, json, "application/json");
     }
 
+    private void handleRealtimeStart(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}", "application/json");
+            return;
+        }
+
+        String body = readRequestBody(exchange);
+        String playerName = extractJsonValue(body, "playerName");
+        String serverName = extractJsonValue(body, "serverName");
+
+        if (playerName == null || playerName.isEmpty()) {
+            sendResponse(exchange, 400, "{\"error\":\"Player name required\"}", "application/json");
+            return;
+        }
+
+        boolean success = realTimeController.startDashboardRealTimeCheck(playerName, serverName);
+
+        setCORSHeaders(exchange);
+        if (success) {
+            String json = "{\"success\":true,\"message\":\"Real-time monitoring started\",\"player\":\"" + playerName + "\"}";
+            sendResponse(exchange, 200, json, "application/json");
+        } else {
+            sendResponse(exchange, 400, "{\"success\":false,\"error\":\"Real-time monitoring already active or server not found\"}", "application/json");
+        }
+    }
+
+    private void handleRealtimeStop(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}", "application/json");
+            return;
+        }
+
+        boolean success = realTimeController.stopDashboardRealTimeCheck();
+
+        setCORSHeaders(exchange);
+        String json = "{\"success\":" + success + ",\"message\":\"Real-time monitoring stopped\"}";
+        sendResponse(exchange, 200, json, "application/json");
+    }
+
+    private void handleRealtimeStatus(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}", "application/json");
+            return;
+        }
+
+        boolean active = realTimeController.isDashboardActive();
+        String player = realTimeController.getCurrentDashboardPlayer();
+        PlayerCheckResult result = realTimeController.getLastDashboardResult();
+
+        StringBuilder json = new StringBuilder();
+        json.append("{");
+        json.append("\"active\":").append(active).append(",");
+        json.append("\"player\":").append(player != null ? "\"" + player + "\"" : "null").append(",");
+
+        if (result != null) {
+            json.append("\"lastCheck\":{");
+            json.append("\"success\":").append(result.isSuccess()).append(",");
+            json.append("\"online\":").append(result.isOnline()).append(",");
+            json.append("\"onlineCount\":").append(result.getOnlineCount()).append(",");
+            json.append("\"usingQuery\":").append(result.isUsingQuery());
+            if (!result.isSuccess() && result.getErrorMessage() != null) {
+                json.append(",\"error\":\"").append(result.getErrorMessage()).append("\"");
+            }
+            json.append("}");
+        } else {
+            json.append("\"lastCheck\":null");
+        }
+
+        json.append("}");
+
+        setCORSHeaders(exchange);
+        sendResponse(exchange, 200, json.toString(), "application/json");
+    }
+
     private String buildDashboardHTML() {
         return "<!DOCTYPE html>\n" +
             "<html>\n" +
@@ -187,9 +266,24 @@ public class DashboardServer {
             "            </div>\n" +
             "            <div id=\"result\"></div>\n" +
             "        </div>\n" +
+            "        \n" +
+            "        <div class=\"section\">\n" +
+            "            <h2>Real-Time Monitoring</h2>\n" +
+            "            <div class=\"check-form\">\n" +
+            "                <input type=\"text\" id=\"realtimePlayerName\" placeholder=\"Enter player name\">\n" +
+            "                <select id=\"realtimeServerSelect\">\n" +
+            "                    <option value=\"\">Default Server</option>\n" +
+            "                </select>\n" +
+            "                <button id=\"realtimeBtn\" onclick=\"toggleRealtime()\">Start Monitoring</button>\n" +
+            "            </div>\n" +
+            "            <div id=\"realtimeStatus\" style=\"margin-top: 15px;\"></div>\n" +
+            "        </div>\n" +
             "    </div>\n" +
             "    \n" +
             "    <script>\n" +
+            "        let realtimeInterval = null;\n" +
+            "        let realtimeActive = false;\n" +
+            "        \n" +
             "        async function loadServers() {\n" +
             "            const container = document.getElementById('servers');\n" +
             "            container.innerHTML = '<div class=\"loading\">Loading...</div>';\n" +
@@ -265,8 +359,123 @@ public class DashboardServer {
             "            }\n" +
             "        }\n" +
             "        \n" +
+            "        async function toggleRealtime() {\n" +
+            "            const btn = document.getElementById('realtimeBtn');\n" +
+            "            const playerName = document.getElementById('realtimePlayerName').value.trim();\n" +
+            "            const serverName = document.getElementById('realtimeServerSelect').value;\n" +
+            "            \n" +
+            "            if (!realtimeActive) {\n" +
+            "                if (!playerName) {\n" +
+            "                    alert('Please enter a player name');\n" +
+            "                    return;\n" +
+            "                }\n" +
+            "                \n" +
+            "                try {\n" +
+            "                    const response = await fetch('/api/realtime/start', {\n" +
+            "                        method: 'POST',\n" +
+            "                        headers: {'Content-Type': 'application/json'},\n" +
+            "                        body: JSON.stringify({playerName, serverName: serverName || null})\n" +
+            "                    });\n" +
+            "                    \n" +
+            "                    const data = await response.json();\n" +
+            "                    \n" +
+            "                    if (data.success) {\n" +
+            "                        realtimeActive = true;\n" +
+            "                        btn.textContent = 'Stop Monitoring';\n" +
+            "                        btn.style.background = '#f44336';\n" +
+            "                        document.getElementById('realtimePlayerName').disabled = true;\n" +
+            "                        document.getElementById('realtimeServerSelect').disabled = true;\n" +
+            "                        startRealtimePolling();\n" +
+            "                    } else {\n" +
+            "                        alert('Failed to start monitoring: ' + (data.error || 'Unknown error'));\n" +
+            "                    }\n" +
+            "                } catch (error) {\n" +
+            "                    alert('Error: ' + error.message);\n" +
+            "                }\n" +
+            "            } else {\n" +
+            "                try {\n" +
+            "                    await fetch('/api/realtime/stop', {method: 'POST'});\n" +
+            "                    realtimeActive = false;\n" +
+            "                    btn.textContent = 'Start Monitoring';\n" +
+            "                    btn.style.background = '#4CAF50';\n" +
+            "                    document.getElementById('realtimePlayerName').disabled = false;\n" +
+            "                    document.getElementById('realtimeServerSelect').disabled = false;\n" +
+            "                    stopRealtimePolling();\n" +
+            "                    document.getElementById('realtimeStatus').innerHTML = '';\n" +
+            "                } catch (error) {\n" +
+            "                    alert('Error: ' + error.message);\n" +
+            "                }\n" +
+            "            }\n" +
+            "        }\n" +
+            "        \n" +
+            "        function startRealtimePolling() {\n" +
+            "            updateRealtimeStatus();\n" +
+            "            realtimeInterval = setInterval(updateRealtimeStatus, 5000);\n" +
+            "        }\n" +
+            "        \n" +
+            "        function stopRealtimePolling() {\n" +
+            "            if (realtimeInterval) {\n" +
+            "                clearInterval(realtimeInterval);\n" +
+            "                realtimeInterval = null;\n" +
+            "            }\n" +
+            "        }\n" +
+            "        \n" +
+            "        async function updateRealtimeStatus() {\n" +
+            "            try {\n" +
+            "                const response = await fetch('/api/realtime/status');\n" +
+            "                const data = await response.json();\n" +
+            "                \n" +
+            "                const statusDiv = document.getElementById('realtimeStatus');\n" +
+            "                \n" +
+            "                if (!data.active) {\n" +
+            "                    statusDiv.innerHTML = '';\n" +
+            "                    return;\n" +
+            "                }\n" +
+            "                \n" +
+            "                let html = '<div class=\"result\">';\n" +
+            "                html += '<strong>Monitoring: ' + data.player + '</strong><br>';\n" +
+            "                html += '<span style=\"color: #999; font-size: 0.9em;\">Check interval: 60 seconds</span><br><br>';\n" +
+            "                \n" +
+            "                if (data.lastCheck) {\n" +
+            "                    if (data.lastCheck.success) {\n" +
+            "                        const status = data.lastCheck.online ? 'ONLINE' : 'OFFLINE';\n" +
+            "                        const color = data.lastCheck.online ? '#4CAF50' : '#f44336';\n" +
+            "                        html += '<div style=\"font-size: 1.2em;\">Status: <span style=\"color: ' + color + '; font-weight: bold;\">' + status + '</span></div>';\n" +
+            "                        html += '<div>Players online: ' + data.lastCheck.onlineCount + '</div>';\n" +
+            "                        if (data.lastCheck.usingQuery) {\n" +
+            "                            html += '<div style=\"color: #4CAF50;\">✓ Using Query Protocol</div>';\n" +
+            "                        }\n" +
+            "                    } else {\n" +
+            "                        html += '<div style=\"color: #f44336;\">Server Unreachable</div>';\n" +
+            "                        if (data.lastCheck.error) {\n" +
+            "                            html += '<div style=\"color: #999; font-size: 0.9em;\">' + data.lastCheck.error + '</div>';\n" +
+            "                        }\n" +
+            "                    }\n" +
+            "                } else {\n" +
+            "                    html += '<div class=\"loading\">Waiting for first check...</div>';\n" +
+            "                }\n" +
+            "                \n" +
+            "                html += '</div>';\n" +
+            "                statusDiv.innerHTML = html;\n" +
+            "            } catch (error) {\n" +
+            "                console.error('Failed to update realtime status:', error);\n" +
+            "            }\n" +
+            "        }\n" +
+            "        \n" +
             "        loadServers();\n" +
             "        setInterval(loadServers, 30000);\n" +
+            "        \n" +
+            "        fetch('/api/realtime/status').then(r => r.json()).then(data => {\n" +
+            "            if (data.active && data.player) {\n" +
+            "                realtimeActive = true;\n" +
+            "                document.getElementById('realtimePlayerName').value = data.player;\n" +
+            "                document.getElementById('realtimePlayerName').disabled = true;\n" +
+            "                document.getElementById('realtimeServerSelect').disabled = true;\n" +
+            "                document.getElementById('realtimeBtn').textContent = 'Stop Monitoring';\n" +
+            "                document.getElementById('realtimeBtn').style.background = '#f44336';\n" +
+            "                startRealtimePolling();\n" +
+            "            }\n" +
+            "        });\n" +
             "    </script>\n" +
             "</body>\n" +
             "</html>";

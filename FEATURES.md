@@ -285,3 +285,52 @@ New features are additive and optional.
 - Discord webhook (for notifications)
 
 **Zero External JARs Required!**
+
+## Real-Time Player Monitoring
+
+### Overview
+Continuously track specific players with automatic notifications when their status changes.
+
+### CLI Mode (1 second interval)
+**Start:** `realtime <playername> [server]`
+**Stop:** `realtime stop`
+
+Live console output showing:
+- Timestamp for each check
+- Online/offline status
+- Player count
+- Query protocol usage
+- Server availability
+
+### Dashboard Mode (60 second interval)
+**Access:** Web dashboard → Real-Time Monitoring section
+- Enter player name and click "Start Monitoring"
+- Status updates every 5 seconds on page
+- Persists across page refreshes
+- Toggle on/off with single button
+
+### Features
+- **Independent Operation**: CLI and dashboard modes run simultaneously
+- **Thread-Safe**: AtomicBoolean and AtomicReference for state management
+- **History Integration**: All checks recorded to database
+- **Discord Notifications**: Auto-alerts on status changes
+- **Error Recovery**: Continues checking if server becomes unreachable
+- **Configurable Intervals**: Adjust check frequency in config.properties
+
+### Configuration
+```properties
+realtime.cliIntervalSeconds=1
+realtime.dashboardIntervalSeconds=60
+```
+
+### Use Cases
+1. **Wait for player**: Get notified when specific player comes online
+2. **Server monitoring**: Track server uptime and availability
+3. **Long-term tracking**: Dashboard mode for passive monitoring
+4. **Active watching**: CLI mode when you're at the console
+
+### API Endpoints
+- `POST /api/realtime/start` - Start dashboard monitoring
+- `POST /api/realtime/stop` - Stop dashboard monitoring
+- `GET /api/realtime/status` - Get current monitoring status
+

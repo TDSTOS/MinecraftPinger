@@ -69,6 +69,9 @@ run.bat
 - `servers` - List all configured servers
 - `history <playername> [days]` - Show player history (requires history tracking)
   - Example: `history Steve 7`
+- `realtime <playername> [server]` - Start real-time monitoring (1 second interval)
+  - Example: `realtime Steve` or `realtime Alex survival`
+- `realtime stop` - Stop real-time monitoring
 - `checkupdates` - Check for application updates and install if available
 - `help` - Show available commands
 - `exit` - Exit the program
@@ -78,8 +81,9 @@ run.bat
 Access the web dashboard at `http://localhost:8080` (or your configured port) to:
 - View real-time server status
 - Check player status via web interface
+- Start/stop real-time player monitoring (updates every 60 seconds)
 - Monitor all servers at once
-- Auto-refresh every 30 seconds
+- Auto-refresh server status every 30 seconds
 
 ## Features
 

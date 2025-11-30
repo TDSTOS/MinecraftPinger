@@ -63,7 +63,8 @@ public class Main {
                 multiServerChecker,
                 historyService,
                 config,
-                updateManager
+                updateManager,
+                realTimeController
             );
 
             try {
