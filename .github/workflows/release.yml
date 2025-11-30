@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,6 +25,7 @@ jobs:
       - name: Prepare release directory
         run: |
           mkdir release
+          # Kopiere build output (anpassen falls anderer Ordner)
           cp -r out/* release/ 2>/dev/null || true
           cp run.sh release/run.sh
           cp update/update.bat release/update.bat 2>/dev/null || true
@@ -29,39 +33,43 @@ jobs:
           cd release
           zip -r ../release.zip .
 
-      ############################################################
-      # Auto-create a Git tag when none exists
-      ############################################################
+      #####################################################################
+      # AUTO-TAGGING
+      #####################################################################
       - name: Auto-create tag if missing
         id: autotag
         run: |
-          # Prüfen ob HEAD bereits einen Tag hat
+          # Prüfen ob ein Tag auf dem aktuellen Commit sitzt
           EXISTING_TAG=$(git tag --points-at HEAD)
 
           if [ -z "$EXISTING_TAG" ]; then
-            # Automatisch einen Tag generieren
             TAG=v0.${{ github.run_number }}
-
             echo "No tag found. Creating tag $TAG"
 
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
+            # Git korrekt konfigurieren
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            # Remote neu setzen mit Token zum Pushen
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
             git tag $TAG
             git push origin $TAG
-
             echo "tag_created=$TAG" >> $GITHUB_OUTPUT
           else
-            echo "Existing tag found: $EXISTING_TAG"
+            echo "Existing tag: $EXISTING_TAG"
             echo "tag_created=$EXISTING_TAG" >> $GITHUB_OUTPUT
           fi
 
-      ############################################################
-      # CREATE RELEASE with the generated tag
-      ############################################################
+      #####################################################################
+      # RELEASE ERSTELLEN
+      #####################################################################
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.autotag.outputs.tag_created }}
+          draft: false
+          prerelease: false
           files: release.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
