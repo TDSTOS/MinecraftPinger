@@ -121,35 +121,7 @@ public class GitHubReleaseChecker {
     }
 
     private String extractJsonField(String json, String fieldName) {
-        String pattern = "\"" + fieldName + "\":";
-        int start = json.indexOf(pattern);
-
-        if (start == -1) {
-            return null;
-        }
-
-        start += pattern.length();
-
-        while (start < json.length() && (json.charAt(start) == ' ' || json.charAt(start) == '\t')) {
-            start++;
-        }
-
-        if (start >= json.length()) {
-            return null;
-        }
-
-        if (json.charAt(start) == '"') {
-            start++;
-            int end = json.indexOf("\"", start);
-            if (end == -1) return null;
-            return json.substring(start, end);
-        } else {
-            int end = start;
-            while (end < json.length() && json.charAt(end) != ',' && json.charAt(end) != '}' && json.charAt(end) != ']') {
-                end++;
-            }
-            return json.substring(start, end).trim();
-        }
+        return Utils.extractJsonField(json, fieldName);
     }
 
     private String extractJsonSection(String json, String sectionName) {

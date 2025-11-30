@@ -82,10 +82,6 @@ public record SupabaseClient(String supabaseUrl, String supabaseKey) {
     }
 
     private String escapeJson(String s) {
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        return Utils.escapeJson(s);
     }
 }

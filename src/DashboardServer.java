@@ -733,23 +733,7 @@ public class DashboardServer {
     }
 
     private String getQueryParam(String query, String param) {
-        if (query == null) return null;
-
-        String[] pairs = query.split("&");
-        for (String pair : pairs) {
-            String[] keyValue = pair.split("=");
-            if (keyValue.length == 2 && keyValue[0].equals(param)) {
-                return keyValue[1];
-            }
-        }
-        return null;
-    }
-
-    private String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n");
+        return Utils.getQueryParam(query, param);
     }
 
     private void handleAnalytics(HttpExchange exchange) throws IOException {
@@ -859,7 +843,7 @@ public class DashboardServer {
             "{\"playerName\":\"%s\",\"totalOnlineTime\":%d,\"dailyOnlineTime\":%d," +
             "\"weeklyOnlineTime\":%d,\"sessionCount\":%d,\"averageSessionLength\":%d," +
             "\"longestSession\":%d,\"hourlyActivity\":%s}",
-            escapeJson(insights.getPlayerName()),
+            Utils.escapeJson(insights.getPlayerName()),
             insights.getTotalOnlineTime(),
             insights.getDailyOnlineTime(),
             insights.getWeeklyOnlineTime(),
@@ -880,9 +864,9 @@ public class DashboardServer {
                 "\"serverName\":\"%s\",\"message\":\"%s\"}",
                 event.getTimestamp(),
                 event.getType().toString(),
-                escapeJson(event.getPlayerName() != null ? event.getPlayerName() : ""),
-                escapeJson(event.getServerName() != null ? event.getServerName() : ""),
-                escapeJson(event.getMessage())
+                Utils.escapeJson(event.getPlayerName() != null ? event.getPlayerName() : ""),
+                Utils.escapeJson(event.getServerName() != null ? event.getServerName() : ""),
+                Utils.escapeJson(event.getMessage())
             ));
         }
         json.append("]");
@@ -894,7 +878,7 @@ public class DashboardServer {
             "{\"serverName\":\"%s\",\"timestamp\":%d,\"pingLatency\":%d," +
             "\"responseTime\":%d,\"playerCount\":%d,\"tps\":%s,\"cpuLoad\":%s," +
             "\"ramUsage\":%s,\"ramMax\":%s,\"worldInfo\":\"%s\"}",
-            escapeJson(metrics.getServerName()),
+            Utils.escapeJson(metrics.getServerName()),
             metrics.getTimestamp(),
             metrics.getPingLatency(),
             metrics.getResponseTime(),
@@ -903,7 +887,7 @@ public class DashboardServer {
             metrics.getCpuLoad() != null ? metrics.getCpuLoad() : "null",
             metrics.getRamUsage() != null ? metrics.getRamUsage() : "null",
             metrics.getRamMax() != null ? metrics.getRamMax() : "null",
-            escapeJson(metrics.getWorldInfo() != null ? metrics.getWorldInfo() : "")
+            Utils.escapeJson(metrics.getWorldInfo() != null ? metrics.getWorldInfo() : "")
         );
     }
 
@@ -912,7 +896,7 @@ public class DashboardServer {
         boolean first = true;
         for (Map.Entry<String, PerformanceMetrics> entry : allMetrics.entrySet()) {
             if (!first) json.append(",");
-            json.append("\"").append(escapeJson(entry.getKey())).append("\":");
+            json.append("\"").append(Utils.escapeJson(entry.getKey())).append("\":");
             json.append(metricsToJson(entry.getValue()));
             first = false;
         }
@@ -921,12 +905,6 @@ public class DashboardServer {
     }
 
     private String listToJson(List<String> list) {
-        StringBuilder json = new StringBuilder("[");
-        for (int i = 0; i < list.size(); i++) {
-            if (i > 0) json.append(",");
-            json.append("\"").append(escapeJson(list.get(i))).append("\"");
-        }
-        json.append("]");
-        return json.toString();
+        return Utils.listToJson(list);
     }
 }

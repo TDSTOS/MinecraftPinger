@@ -49,25 +49,7 @@ public class HistoryService {
     }
 
     private Map<String, String> loadEnvFile(String filePath) {
-        Map<String, String> env = new HashMap<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty() || line.startsWith("#")) {
-                    continue;
-                }
-                int equalsIndex = line.indexOf('=');
-                if (equalsIndex > 0) {
-                    String key = line.substring(0, equalsIndex).trim();
-                    String value = line.substring(equalsIndex + 1).trim();
-                    env.put(key, value);
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Warning: Could not read .env file: " + e.getMessage());
-        }
-        return env;
+        return Utils.loadEnvFile(filePath);
     }
 
     private void initializeDatabase() {
@@ -100,8 +82,8 @@ public class HistoryService {
 
             String jsonData = String.format(
                 "{\"player_name\":\"%s\",\"server_name\":\"%s\",\"status\":\"%s\",\"online_count\":%d,\"timestamp\":\"%s\"}",
-                escapeJson(playerName),
-                escapeJson(serverName),
+                Utils.escapeJson(playerName),
+                Utils.escapeJson(serverName),
                 status,
                 onlineCount,
                 timestamp
@@ -200,35 +182,9 @@ public class HistoryService {
     }
 
     private String extractJsonField(String json, String fieldName) {
-        String pattern = "\"" + fieldName + "\":";
-        int start = json.indexOf(pattern);
-
-        if (start == -1) {
-            return null;
-        }
-
-        start += pattern.length();
-
-        if (json.charAt(start) == '"') {
-            start++;
-            int end = json.indexOf("\"", start);
-            if (end == -1) return null;
-            return json.substring(start, end);
-        } else {
-            int end = start;
-            while (end < json.length() && json.charAt(end) != ',' && json.charAt(end) != '}') {
-                end++;
-            }
-            return json.substring(start, end).trim();
-        }
+        return Utils.extractJsonField(json, fieldName);
     }
 
-    private String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n");
-    }
 
     public boolean isEnabled() {
         return enabled;
