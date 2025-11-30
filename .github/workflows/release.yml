@@ -22,16 +22,46 @@ jobs:
       - name: Prepare release directory
         run: |
           mkdir release
-          cp -r out/* release/ || true
+          cp -r out/* release/ 2>/dev/null || true
           cp run.sh release/run.sh
           cp update/update.bat release/update.bat 2>/dev/null || true
           cp update/update.sh release/update.sh 2>/dev/null || true
           cd release
           zip -r ../release.zip .
 
+      ############################################################
+      # Auto-create a Git tag when none exists
+      ############################################################
+      - name: Auto-create tag if missing
+        id: autotag
+        run: |
+          # Prüfen ob HEAD bereits einen Tag hat
+          EXISTING_TAG=$(git tag --points-at HEAD)
+
+          if [ -z "$EXISTING_TAG" ]; then
+            # Automatisch einen Tag generieren
+            TAG=v0.${{ github.run_number }}
+
+            echo "No tag found. Creating tag $TAG"
+
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git tag $TAG
+            git push origin $TAG
+
+            echo "tag_created=$TAG" >> $GITHUB_OUTPUT
+          else
+            echo "Existing tag found: $EXISTING_TAG"
+            echo "tag_created=$EXISTING_TAG" >> $GITHUB_OUTPUT
+          fi
+
+      ############################################################
+      # CREATE RELEASE with the generated tag
+      ############################################################
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.autotag.outputs.tag_created }}
           files: release.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
