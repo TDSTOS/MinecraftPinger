@@ -1,0 +1,37 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Make scripts executable
+        run: chmod +x compile.sh run.sh
+
+      - name: Build project
+        run: ./compile.sh
+
+      - name: Prepare release directory
+        run: |
+          mkdir release
+          cp -r out/* release/ || true
+          cp run.sh release/run.sh
+          cp update/update.bat release/update.bat 2>/dev/null || true
+          cp update/update.sh release/update.sh 2>/dev/null || true
+          cd release
+          zip -r ../release.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
