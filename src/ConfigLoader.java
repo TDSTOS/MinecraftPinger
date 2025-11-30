@@ -1,10 +1,14 @@
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Properties;
+import java.util.*;
 
 public class ConfigLoader {
     private String serverIp;
     private int serverPort;
+    private List<ServerConfig> servers;
+    private String discordWebhook;
+    private int dashboardPort;
+    private boolean historyEnabled;
 
     public ConfigLoader(String configFilePath) throws IOException {
         loadConfig(configFilePath);
@@ -27,6 +31,33 @@ public class ConfigLoader {
         } catch (NumberFormatException e) {
             throw new IOException("Invalid port number in config: " + portStr);
         }
+
+        servers = new ArrayList<>();
+        loadMultiServerConfig(properties);
+
+        discordWebhook = properties.getProperty("discord.webhook", "");
+        dashboardPort = Integer.parseInt(properties.getProperty("dashboard.port", "8080"));
+        historyEnabled = Boolean.parseBoolean(properties.getProperty("history.enabled", "true"));
+    }
+
+    private void loadMultiServerConfig(Properties properties) {
+        ServerConfig defaultServer = new ServerConfig("default", serverIp, serverPort);
+        servers.add(defaultServer);
+
+        for (int i = 1; i <= 10; i++) {
+            String name = properties.getProperty("server." + i + ".name");
+            String ip = properties.getProperty("server." + i + ".ip");
+            String portStr = properties.getProperty("server." + i + ".port");
+
+            if (name != null && ip != null && portStr != null) {
+                try {
+                    int port = Integer.parseInt(portStr);
+                    servers.add(new ServerConfig(name, ip, port));
+                } catch (NumberFormatException e) {
+                    System.err.println("Warning: Invalid port for server " + i + ", skipping");
+                }
+            }
+        }
     }
 
     public String getServerIp() {
@@ -35,5 +66,30 @@ public class ConfigLoader {
 
     public int getServerPort() {
         return serverPort;
+    }
+
+    public List<ServerConfig> getServers() {
+        return servers;
+    }
+
+    public ServerConfig getServerByName(String name) {
+        for (ServerConfig server : servers) {
+            if (server.getName().equalsIgnoreCase(name)) {
+                return server;
+            }
+        }
+        return null;
+    }
+
+    public String getDiscordWebhook() {
+        return discordWebhook;
+    }
+
+    public int getDashboardPort() {
+        return dashboardPort;
+    }
+
+    public boolean isHistoryEnabled() {
+        return historyEnabled;
     }
 }
