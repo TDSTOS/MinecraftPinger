@@ -760,24 +760,24 @@ public class DashboardServer {
         String playerName = getQueryParam(query, "player");
 
         if (playerName == null) {
-            sendJsonResponse(exchange, 400, "{\"error\":\"Missing player parameter\"}");
+            sendResponse(exchange, 400, "{\"error\":\"Missing player parameter\"}", "application/json");
             return;
         }
 
         PlayerAnalytics.PlayerInsights insights = analytics.getInsights(playerName);
         if (insights == null) {
-            sendJsonResponse(exchange, 404, "{\"error\":\"No data found\"}");
+            sendResponse(exchange, 404, "{\"error\":\"No data found\"}", "application/json");
             return;
         }
 
         String json = insightsToJson(insights);
-        sendJsonResponse(exchange, 200, json);
+        sendResponse(exchange, 200, json, "application/json");
     }
 
     private void handleTimeline(HttpExchange exchange) throws IOException {
         List<LiveTimeline.TimelineEvent> events = timeline.getRecentEvents(50);
         String json = timelineToJson(events);
-        sendJsonResponse(exchange, 200, json);
+        sendResponse(exchange, 200, json, "application/json");
     }
 
     private void handlePerformance(HttpExchange exchange) throws IOException {
@@ -787,15 +787,15 @@ public class DashboardServer {
         if (serverName == null) {
             Map<String, PerformanceMetrics> allMetrics = perfMonitor.getLatestForAllServers();
             String json = allMetricsToJson(allMetrics);
-            sendJsonResponse(exchange, 200, json);
+            sendResponse(exchange, 200, json, "application/json");
         } else {
             PerformanceMetrics metrics = perfMonitor.getLatest(serverName);
             if (metrics == null) {
-                sendJsonResponse(exchange, 404, "{\"error\":\"No data found\"}");
+                sendResponse(exchange, 404, "{\"error\":\"No data found\"}", "application/json");
                 return;
             }
             String json = metricsToJson(metrics);
-            sendJsonResponse(exchange, 200, json);
+            sendResponse(exchange, 200, json, "application/json");
         }
     }
 
@@ -805,7 +805,7 @@ public class DashboardServer {
         String serverName = getQueryParam(query, "server");
 
         boolean success = multiRealTime.addCliPlayer(playerName, serverName);
-        sendJsonResponse(exchange, 200, "{\"success\":" + success + "}");
+        sendResponse(exchange, 200, "{\"success\":" + success + "}", "application/json");
     }
 
     private void handleMultiRealtimeRemove(HttpExchange exchange) throws IOException {
@@ -813,7 +813,7 @@ public class DashboardServer {
         String playerName = getQueryParam(query, "player");
 
         boolean success = multiRealTime.removeCliPlayer(playerName);
-        sendJsonResponse(exchange, 200, "{\"success\":" + success + "}");
+        sendResponse(exchange, 200, "{\"success\":" + success + "}", "application/json");
     }
 
     private void handleMultiRealtimeList(HttpExchange exchange) throws IOException {
@@ -824,7 +824,7 @@ public class DashboardServer {
                       ",\"background\":" + listToJson(bgPlayers) +
                       ",\"cliActive\":" + multiRealTime.isCliActive() +
                       ",\"backgroundActive\":" + multiRealTime.isBackgroundActive() + "}";
-        sendJsonResponse(exchange, 200, json);
+        sendResponse(exchange, 200, json, "application/json");
     }
 
     private void handleBackgroundStart(HttpExchange exchange) throws IOException {
@@ -832,19 +832,19 @@ public class DashboardServer {
         String playersParam = getQueryParam(query, "players");
 
         if (playersParam == null) {
-            sendJsonResponse(exchange, 400, "{\"error\":\"Missing players parameter\"}");
+            sendResponse(exchange, 400, "{\"error\":\"Missing players parameter\"}", "application/json");
             return;
         }
 
         String[] playerNames = playersParam.split(",");
         Set<String> players = new HashSet<>(Arrays.asList(playerNames));
         boolean success = multiRealTime.startBackgroundMonitoring(players);
-        sendJsonResponse(exchange, 200, "{\"success\":" + success + "}");
+        sendResponse(exchange, 200, "{\"success\":" + success + "}", "application/json");
     }
 
     private void handleBackgroundStop(HttpExchange exchange) throws IOException {
         boolean success = multiRealTime.stopBackgroundMonitoring();
-        sendJsonResponse(exchange, 200, "{\"success\":" + success + "}");
+        sendResponse(exchange, 200, "{\"success\":" + success + "}", "application/json");
     }
 
     private String insightsToJson(PlayerAnalytics.PlayerInsights insights) {
