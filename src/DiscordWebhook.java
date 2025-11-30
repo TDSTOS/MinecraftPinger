@@ -68,6 +68,22 @@ public record DiscordWebhook(String webhookUrl) {
         }
     }
 
+    public void sendServerOnlineNotification(String serverName) {
+        if (!isEnabled()) return;
+
+        try {
+            String message = String.format(
+                    "{\"embeds\":[{\"title\":\"Server Outage\",\"description\":\"**%s** is now online again.\",\"color\":15105570,\"timestamp\":\"%s\",\"footer\":{\"text\":\"Minecraft Player Checker\"}}]}",
+                    escapeJson(serverName),
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())
+            );
+
+            sendWebhook(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send Discord notification: " + e.getMessage());
+        }
+    }
+
     public void sendDailySummary(String summary) {
         if (!isEnabled()) return;
 

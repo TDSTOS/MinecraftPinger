@@ -106,6 +106,11 @@ public class RealTimeCheckController {
                     }
                 }
             } else {
+                if (previousResult != null && !previousResult.isSuccess()) {
+                    if (discord.isEnabled()) {
+                        discord.sendServerOnlineNotification(server.getName());
+                    }
+                }
                 status.append(playerName).append(": ");
                 if (result.isOnline()) {
                     status.append("ONLINE");

@@ -214,7 +214,18 @@ public class MultiPlayerRealTimeController {
 
                 if (!result.isSuccess()) {
                     status.append("SERVER UNREACHABLE - ").append(result.getErrorMessage());
+
+                    if (previousResult != null && previousResult.isSuccess()) {
+                        if (discord.isEnabled()) {
+                            discord.sendServerOutageNotification(server.getName(), result.getErrorMessage());
+                        }
+                    }
                 } else {
+                    if (previousResult != null && !previousResult.isSuccess()) {
+                        if (discord.isEnabled()) {
+                            discord.sendServerOnlineNotification(server.getName());
+                        }
+                    }
                     status.append(result.isOnline() ? "ONLINE" : "OFFLINE");
                     status.append(" | Players: ").append(result.getOnlineCount());
 
