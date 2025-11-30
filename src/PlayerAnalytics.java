@@ -131,8 +131,8 @@ public class PlayerAnalytics {
 
         StringBuilder sb = new StringBuilder();
         sb.append("\nActivity Heatmap for ").append(playerName).append(":\n");
-        sb.append("Hour | Activity\n");
-        sb.append("-----|").append("-".repeat(50)).append("\n");
+        sb.append("Hour  | Activity\n");
+        sb.append("------|").append("-".repeat(30)).append("\n");
 
         Map<Integer, Integer> hourlyActivity = insights.getHourlyActivity();
         int maxActivity = hourlyActivity.values().stream().max(Integer::compareTo).orElse(1);

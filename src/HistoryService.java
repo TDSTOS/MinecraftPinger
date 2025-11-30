@@ -1,8 +1,11 @@
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.*;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class HistoryService {
     private SupabaseClient supabase;
@@ -103,9 +106,14 @@ public class HistoryService {
         }
 
         try {
+            // Calculate ISO timestamp X days ago
+            Instant since = Instant.now(Clock.systemUTC()).minus(days, ChronoUnit.DAYS);
+            String sinceIso = since.toString();
+
             String filter = String.format(
-                "player_name=eq.%s&timestamp=gte.now()-interval'%d days'&order=timestamp.desc&limit=1000",
-                playerName, days
+                "player_name=eq.%s&timestamp=gte.%s&order=timestamp.desc&limit=1000",
+                playerName,
+                URLEncoder.encode(sinceIso, StandardCharsets.UTF_8)
             );
 
             String response = supabase.select("player_history", filter);
