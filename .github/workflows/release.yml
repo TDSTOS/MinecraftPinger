@@ -1,4 +1,4 @@
-name: Build and Release
+name: Manual Build and Release
 
 on:
   workflow_dispatch:
@@ -27,13 +27,19 @@ jobs:
       - name: Build project
         run: ./compile.sh
 
+      # Create a release folder with all files except git data
       - name: Prepare release directory
         run: |
           mkdir release
-          cp -r out/* release/ 2>/dev/null || true
-          cp run.sh release/run.sh
+          # Copy everything except .git, .github, release folder itself, and the workflow file
+          shopt -s extglob
+          cp -r !(release|.git|.github) release/
+
+          # Make sure run.sh and update scripts are included
+          cp run.sh release/ 2>/dev/null || true
           cp update/update.bat release/update.bat 2>/dev/null || true
           cp update/update.sh release/update.sh 2>/dev/null || true
+
           cd release
           zip -r ../release.zip .
 
