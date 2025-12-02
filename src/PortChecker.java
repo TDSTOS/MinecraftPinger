@@ -10,7 +10,6 @@ public class PortChecker {
     private final int scanTimeoutMs;
     private final boolean parallelChecks;
     private final List<Integer> defaultPorts;
-    private MinecraftPinger minecraftPinger;
 
     public PortChecker(int scanTimeoutMs, boolean parallelChecks, List<Integer> defaultPorts) {
         this.scanTimeoutMs = scanTimeoutMs;
@@ -257,13 +256,11 @@ public class PortChecker {
 
             socket.close();
 
-            if (minecraftPinger == null) {
-                minecraftPinger = new MinecraftPinger();
-            }
-
             try {
-                boolean isOnline = minecraftPinger.isPlayerOnline(ip, port, playerName);
-                int onlineCount = minecraftPinger.getOnlinePlayerCount();
+                MinecraftPinger pinger = new MinecraftPinger(ip, port);
+                PlayerChecker playerChecker = new PlayerChecker(pinger);
+                boolean isOnline = playerChecker.isPlayerOnline(playerName);
+                int onlineCount = playerChecker.getOnlinePlayerCount();
                 long totalLatency = System.currentTimeMillis() - startTime;
 
                 return new PortCheckResult(ip, port, true, totalLatency, null, isOnline, playerName, onlineCount);
