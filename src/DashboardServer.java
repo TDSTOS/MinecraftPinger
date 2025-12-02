@@ -916,6 +916,7 @@ public class DashboardServer {
         String target = getQueryParam(query, "target");
         String startPortStr = getQueryParam(query, "startPort");
         String endPortStr = getQueryParam(query, "endPort");
+        String playerName = getQueryParam(query, "player");
 
         if (target == null || target.isEmpty()) {
             sendResponse(exchange, 400, "{\"error\":\"Missing target parameter\"}", "application/json");
@@ -930,23 +931,44 @@ public class DashboardServer {
         try {
             List<PortCheckResult> results;
 
-            if (startPortStr != null && endPortStr != null) {
-                int startPort = Integer.parseInt(startPortStr);
-                int endPort = Integer.parseInt(endPortStr);
+            if (playerName != null && !playerName.isEmpty()) {
+                if (startPortStr != null && endPortStr != null) {
+                    int startPort = Integer.parseInt(startPortStr);
+                    int endPort = Integer.parseInt(endPortStr);
 
-                if (startPort < 1 || startPort > 65535 || endPort < 1 || endPort > 65535) {
-                    sendResponse(exchange, 400, "{\"error\":\"Port numbers must be between 1 and 65535\"}", "application/json");
-                    return;
+                    if (startPort < 1 || startPort > 65535 || endPort < 1 || endPort > 65535) {
+                        sendResponse(exchange, 400, "{\"error\":\"Port numbers must be between 1 and 65535\"}", "application/json");
+                        return;
+                    }
+
+                    if (startPort > endPort) {
+                        sendResponse(exchange, 400, "{\"error\":\"Start port must be less than or equal to end port\"}", "application/json");
+                        return;
+                    }
+
+                    results = portChecker.checkPortsWithPlayer(target, startPort, endPort, playerName);
+                } else {
+                    results = portChecker.checkDefaultPortsWithPlayer(target, playerName);
                 }
-
-                if (startPort > endPort) {
-                    sendResponse(exchange, 400, "{\"error\":\"Start port must be less than or equal to end port\"}", "application/json");
-                    return;
-                }
-
-                results = portChecker.checkPorts(target, startPort, endPort);
             } else {
-                results = portChecker.checkDefaultPorts(target);
+                if (startPortStr != null && endPortStr != null) {
+                    int startPort = Integer.parseInt(startPortStr);
+                    int endPort = Integer.parseInt(endPortStr);
+
+                    if (startPort < 1 || startPort > 65535 || endPort < 1 || endPort > 65535) {
+                        sendResponse(exchange, 400, "{\"error\":\"Port numbers must be between 1 and 65535\"}", "application/json");
+                        return;
+                    }
+
+                    if (startPort > endPort) {
+                        sendResponse(exchange, 400, "{\"error\":\"Start port must be less than or equal to end port\"}", "application/json");
+                        return;
+                    }
+
+                    results = portChecker.checkPorts(target, startPort, endPort);
+                } else {
+                    results = portChecker.checkDefaultPorts(target);
+                }
             }
 
             String json = portChecker.resultsToJson(results);

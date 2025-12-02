@@ -76,6 +76,8 @@ public class ConsoleInterface {
         System.out.println("  perfstats [server]             - Show performance statistics");
         System.out.println("  portcheck <ip|host>            - Check default Minecraft ports");
         System.out.println("  portcheck <ip> <start> <end>   - Check custom port range");
+        System.out.println("  portcheck <ip> <player>        - Check ports for specific player");
+        System.out.println("  portcheck <ip> <start> <end> <player> - Check range for player");
         System.out.println("  checkupdates                   - Check for application updates");
         System.out.println("  help                           - Show this help message");
         System.out.println("  exit                           - Exit the program");
@@ -581,6 +583,10 @@ public class ConsoleInterface {
             if (parts.length == 1) {
                 System.out.println("Scanning default Minecraft ports on " + target + "...");
                 results = portChecker.checkDefaultPorts(target);
+            } else if (parts.length == 2) {
+                String playerName = parts[1];
+                System.out.println("Scanning default Minecraft ports on " + target + " for player " + playerName + "...");
+                results = portChecker.checkDefaultPortsWithPlayer(target, playerName);
             } else if (parts.length == 3) {
                 try {
                     int startPort = Integer.parseInt(parts[1]);
@@ -602,10 +608,34 @@ public class ConsoleInterface {
                     System.out.println("Error: Invalid port number format");
                     return;
                 }
+            } else if (parts.length == 4) {
+                try {
+                    int startPort = Integer.parseInt(parts[1]);
+                    int endPort = Integer.parseInt(parts[2]);
+                    String playerName = parts[3];
+
+                    if (startPort < 1 || startPort > 65535 || endPort < 1 || endPort > 65535) {
+                        System.out.println("Error: Port numbers must be between 1 and 65535");
+                        return;
+                    }
+
+                    if (startPort > endPort) {
+                        System.out.println("Error: Start port must be less than or equal to end port");
+                        return;
+                    }
+
+                    System.out.println("Scanning ports " + startPort + "-" + endPort + " on " + target + " for player " + playerName + "...");
+                    results = portChecker.checkPortsWithPlayer(target, startPort, endPort, playerName);
+                } catch (NumberFormatException e) {
+                    System.out.println("Error: Invalid port number format");
+                    return;
+                }
             } else {
                 System.out.println("Error: Invalid number of arguments");
                 System.out.println("Usage: portcheck <ip|host>");
+                System.out.println("       portcheck <ip|host> <player>");
                 System.out.println("       portcheck <ip|host> <startPort> <endPort>");
+                System.out.println("       portcheck <ip|host> <startPort> <endPort> <player>");
                 return;
             }
 
