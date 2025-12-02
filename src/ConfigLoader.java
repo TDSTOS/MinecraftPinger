@@ -15,6 +15,9 @@ public class ConfigLoader {
     private String autoUpdateRepositoryName;
     private int realTimeCliIntervalSeconds;
     private int realTimeDashboardIntervalSeconds;
+    private List<Integer> portCheckerDefaultPorts;
+    private int portCheckerScanTimeoutMs;
+    private boolean portCheckerParallelChecks;
 
     public ConfigLoader(String configFilePath) throws IOException {
         loadConfig(configFilePath);
@@ -52,6 +55,31 @@ public class ConfigLoader {
 
         realTimeCliIntervalSeconds = Integer.parseInt(properties.getProperty("realtime.cliIntervalSeconds", "1"));
         realTimeDashboardIntervalSeconds = Integer.parseInt(properties.getProperty("realtime.dashboardIntervalSeconds", "60"));
+
+        loadPortCheckerConfig(properties);
+    }
+
+    private void loadPortCheckerConfig(Properties properties) {
+        String defaultPortsStr = properties.getProperty("portchecker.defaultPorts", "25565,25566,25567,25568,25569");
+        portCheckerDefaultPorts = new ArrayList<>();
+
+        for (String portStr : defaultPortsStr.split(",")) {
+            try {
+                int port = Integer.parseInt(portStr.trim());
+                if (port >= 1 && port <= 65535) {
+                    portCheckerDefaultPorts.add(port);
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("Warning: Invalid port in portchecker.defaultPorts: " + portStr);
+            }
+        }
+
+        if (portCheckerDefaultPorts.isEmpty()) {
+            portCheckerDefaultPorts.add(25565);
+        }
+
+        portCheckerScanTimeoutMs = Integer.parseInt(properties.getProperty("portchecker.scanTimeoutMs", "1000"));
+        portCheckerParallelChecks = Boolean.parseBoolean(properties.getProperty("portchecker.parallelChecks", "true"));
     }
 
     private void loadMultiServerConfig(Properties properties) {
@@ -129,5 +157,17 @@ public class ConfigLoader {
 
     public int getRealTimeDashboardIntervalSeconds() {
         return realTimeDashboardIntervalSeconds;
+    }
+
+    public List<Integer> getPortCheckerDefaultPorts() {
+        return portCheckerDefaultPorts;
+    }
+
+    public int getPortCheckerScanTimeoutMs() {
+        return portCheckerScanTimeoutMs;
+    }
+
+    public boolean isPortCheckerParallelChecks() {
+        return portCheckerParallelChecks;
     }
 }

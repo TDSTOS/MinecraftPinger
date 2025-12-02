@@ -17,8 +17,9 @@ public class DashboardServer {
     private final PlayerAnalytics analytics;
     private final LiveTimeline timeline;
     private final ServerPerformanceMonitor perfMonitor;
+    private final PortChecker portChecker;
 
-    public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config, UpdateManager updateManager, RealTimeCheckController realTimeController, MultiPlayerRealTimeController multiRealTime, PlayerAnalytics analytics, LiveTimeline timeline, ServerPerformanceMonitor perfMonitor) {
+    public DashboardServer(int port, MultiServerChecker serverChecker, HistoryService historyService, ConfigLoader config, UpdateManager updateManager, RealTimeCheckController realTimeController, MultiPlayerRealTimeController multiRealTime, PlayerAnalytics analytics, LiveTimeline timeline, ServerPerformanceMonitor perfMonitor, PortChecker portChecker) {
         this.port = port;
         this.serverChecker = serverChecker;
         this.historyService = historyService;
@@ -29,6 +30,7 @@ public class DashboardServer {
         this.analytics = analytics;
         this.timeline = timeline;
         this.perfMonitor = perfMonitor;
+        this.portChecker = portChecker;
     }
 
     public void start() throws IOException {
@@ -52,6 +54,7 @@ public class DashboardServer {
         server.createContext("/api/realtime/multi/list", this::handleMultiRealtimeList);
         server.createContext("/api/realtime/background/start", this::handleBackgroundStart);
         server.createContext("/api/realtime/background/stop", this::handleBackgroundStop);
+        server.createContext("/api/portcheck", this::handlePortCheck);
 
         server.start();
         System.out.println("Dashboard server started on http://localhost:" + port);
@@ -906,5 +909,53 @@ public class DashboardServer {
 
     private String listToJson(List<String> list) {
         return Utils.listToJson(list);
+    }
+
+    private void handlePortCheck(HttpExchange exchange) throws IOException {
+        String query = exchange.getRequestURI().getQuery();
+        String target = getQueryParam(query, "target");
+        String startPortStr = getQueryParam(query, "startPort");
+        String endPortStr = getQueryParam(query, "endPort");
+
+        if (target == null || target.isEmpty()) {
+            sendResponse(exchange, 400, "{\"error\":\"Missing target parameter\"}", "application/json");
+            return;
+        }
+
+        if (!PortChecker.isValidIp(target) && !PortChecker.isValidHostname(target)) {
+            sendResponse(exchange, 400, "{\"error\":\"Invalid IP address or hostname\"}", "application/json");
+            return;
+        }
+
+        try {
+            List<PortCheckResult> results;
+
+            if (startPortStr != null && endPortStr != null) {
+                int startPort = Integer.parseInt(startPortStr);
+                int endPort = Integer.parseInt(endPortStr);
+
+                if (startPort < 1 || startPort > 65535 || endPort < 1 || endPort > 65535) {
+                    sendResponse(exchange, 400, "{\"error\":\"Port numbers must be between 1 and 65535\"}", "application/json");
+                    return;
+                }
+
+                if (startPort > endPort) {
+                    sendResponse(exchange, 400, "{\"error\":\"Start port must be less than or equal to end port\"}", "application/json");
+                    return;
+                }
+
+                results = portChecker.checkPorts(target, startPort, endPort);
+            } else {
+                results = portChecker.checkDefaultPorts(target);
+            }
+
+            String json = portChecker.resultsToJson(results);
+            sendResponse(exchange, 200, json, "application/json");
+
+        } catch (NumberFormatException e) {
+            sendResponse(exchange, 400, "{\"error\":\"Invalid port number format\"}", "application/json");
+        } catch (Exception e) {
+            sendResponse(exchange, 500, "{\"error\":\"Port scan error: " + Utils.escapeJson(e.getMessage()) + "\"}", "application/json");
+        }
     }
 }

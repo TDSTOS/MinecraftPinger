@@ -50,6 +50,13 @@ public class Main {
             PlayerAnalytics analytics = new PlayerAnalytics(historyService);
             System.out.println("Player analytics: ENABLED");
 
+            PortChecker portChecker = new PortChecker(
+                config.getPortCheckerScanTimeoutMs(),
+                config.isPortCheckerParallelChecks(),
+                config.getPortCheckerDefaultPorts()
+            );
+            System.out.println("Port checker: ENABLED");
+
             UpdateManager updateManager = new UpdateManager(config);
             if (config.isAutoUpdateEnabled()) {
                 System.out.println("Auto-update: ENABLED (checking every " + config.getAutoUpdateCheckIntervalMinutes() + " minutes)");
@@ -87,7 +94,8 @@ public class Main {
                 multiRealTime,
                 analytics,
                 timeline,
-                perfMonitor
+                perfMonitor,
+                portChecker
             );
 
             try {
@@ -109,7 +117,8 @@ public class Main {
                 multiRealTime,
                 analytics,
                 timeline,
-                perfMonitor
+                perfMonitor,
+                portChecker
             );
 
             final DashboardServer finalDashboardServer = dashboardServer;

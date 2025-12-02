@@ -14,10 +14,11 @@ public class ConsoleInterface {
     private final PlayerAnalytics analytics;
     private final LiveTimeline timeline;
     private final ServerPerformanceMonitor perfMonitor;
+    private final PortChecker portChecker;
     private final Scanner scanner;
     private boolean running;
 
-    public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord, UpdateManager updateManager, RealTimeCheckController realTimeController, MultiPlayerRealTimeController multiRealTime, PlayerAnalytics analytics, LiveTimeline timeline, ServerPerformanceMonitor perfMonitor) {
+    public ConsoleInterface(PlayerChecker playerChecker, MultiServerChecker multiServerChecker, ConfigLoader config, HistoryService historyService, DiscordWebhook discord, UpdateManager updateManager, RealTimeCheckController realTimeController, MultiPlayerRealTimeController multiRealTime, PlayerAnalytics analytics, LiveTimeline timeline, ServerPerformanceMonitor perfMonitor, PortChecker portChecker) {
         this.playerChecker = playerChecker;
         this.multiServerChecker = multiServerChecker;
         this.config = config;
@@ -29,6 +30,7 @@ public class ConsoleInterface {
         this.analytics = analytics;
         this.timeline = timeline;
         this.perfMonitor = perfMonitor;
+        this.portChecker = portChecker;
         this.checklistProcessor = new ChecklistProcessor(multiServerChecker, config);
         this.scanner = new Scanner(System.in);
         this.running = true;
@@ -72,6 +74,8 @@ public class ConsoleInterface {
         System.out.println("  rtstop                         - Stop background monitoring");
         System.out.println("  timeline [count]               - Show recent events (default 20)");
         System.out.println("  perfstats [server]             - Show performance statistics");
+        System.out.println("  portcheck <ip|host>            - Check default Minecraft ports");
+        System.out.println("  portcheck <ip> <start> <end>   - Check custom port range");
         System.out.println("  checkupdates                   - Check for application updates");
         System.out.println("  help                           - Show this help message");
         System.out.println("  exit                           - Exit the program");
@@ -237,6 +241,16 @@ public class ConsoleInterface {
                     showPerformanceStats(parts[1]);
                 } else {
                     showAllPerformanceStats();
+                }
+                break;
+
+            case "portcheck":
+                if (parts.length < 2) {
+                    System.out.println("Error: Please provide an IP address or hostname.");
+                    System.out.println("Usage: portcheck <ip|host>");
+                    System.out.println("       portcheck <ip|host> <startPort> <endPort>");
+                } else {
+                    handlePortCheck(parts[1]);
                 }
                 break;
 
@@ -550,6 +564,56 @@ public class ConsoleInterface {
             System.out.println(entry.getValue().toString());
         }
         System.out.println("=".repeat(60));
+    }
+
+    private void handlePortCheck(String args) {
+        String[] parts = args.split("\\s+");
+        String target = parts[0];
+
+        if (!PortChecker.isValidIp(target) && !PortChecker.isValidHostname(target)) {
+            System.out.println("Error: Invalid IP address or hostname: " + target);
+            return;
+        }
+
+        try {
+            List<PortCheckResult> results;
+
+            if (parts.length == 1) {
+                System.out.println("Scanning default Minecraft ports on " + target + "...");
+                results = portChecker.checkDefaultPorts(target);
+            } else if (parts.length == 3) {
+                try {
+                    int startPort = Integer.parseInt(parts[1]);
+                    int endPort = Integer.parseInt(parts[2]);
+
+                    if (startPort < 1 || startPort > 65535 || endPort < 1 || endPort > 65535) {
+                        System.out.println("Error: Port numbers must be between 1 and 65535");
+                        return;
+                    }
+
+                    if (startPort > endPort) {
+                        System.out.println("Error: Start port must be less than or equal to end port");
+                        return;
+                    }
+
+                    System.out.println("Scanning ports " + startPort + "-" + endPort + " on " + target + "...");
+                    results = portChecker.checkPorts(target, startPort, endPort);
+                } catch (NumberFormatException e) {
+                    System.out.println("Error: Invalid port number format");
+                    return;
+                }
+            } else {
+                System.out.println("Error: Invalid number of arguments");
+                System.out.println("Usage: portcheck <ip|host>");
+                System.out.println("       portcheck <ip|host> <startPort> <endPort>");
+                return;
+            }
+
+            portChecker.printResults(results);
+
+        } catch (Exception e) {
+            System.out.println("Error during port scan: " + e.getMessage());
+        }
     }
 
     private void handleConnectionError(IOException e) {
